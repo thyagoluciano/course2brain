@@ -106,7 +106,13 @@ status: concluido
 def update_course_moc(course_dir: Path, course_name: str) -> Path:
     """Generate or update the Course Map of Content (MOC) index."""
     moc_path = course_dir / f"_Indice - {sanitize_filename(course_name)}.md"
-    lessons = sorted([f.stem for f in course_dir.glob("*.md") if not f.name.startswith("_")])
+    lesson_files = sorted(
+        [
+            f
+            for f in course_dir.rglob("*.md")
+            if not f.name.startswith("_") and not f.name.startswith(".")
+        ]
+    )
 
     lines = [
         "---",
@@ -119,18 +125,65 @@ def update_course_moc(course_dir: Path, course_name: str) -> Path:
         "",
         f"# 📚 {course_name} (Índice de Aulas)",
         "",
-        f"> Mapa de Conteúdo (MOC) do curso. Total de aulas registradas: **{len(lessons)}**.",
+        f"> Mapa de Conteúdo (MOC) do curso. Total de aulas registradas: **{len(lesson_files)}**.",
         "",
         "## 📑 Aulas Disponíveis",
         "",
     ]
 
-    for lesson in lessons:
-        lines.append(f"- [[{lesson}]]")
+    modules: dict[str, list[str]] = {}
+    for f in lesson_files:
+        try:
+            rel = f.parent.relative_to(course_dir)
+            mod_name = str(rel) if str(rel) != "." else ""
+        except ValueError:
+            mod_name = ""
+        modules.setdefault(mod_name, []).append(f.stem)
+
+    if len(modules) == 1 and "" in modules:
+        for lesson in modules[""]:
+            lines.append(f"- [[{lesson}]]")
+    else:
+        current_space = None
+        for mod, lessons in modules.items():
+            if not mod:
+                for lesson in lessons:
+                    lines.append(f"- [[{lesson}]]")
+                continue
+
+            parts = Path(mod).parts
+            if len(parts) == 1:
+                lines.append(f"### {parts[0]}")
+            elif len(parts) >= 2:
+                space, section = parts[0], parts[1]
+                if space != current_space:
+                    lines.append(f"### {space}")
+                    lines.append("")
+                    current_space = space
+                lines.append(f"#### {section}")
+
+            for lesson in lessons:
+                lines.append(f"- [[{lesson}]]")
+            lines.append("")
 
     lines.append("")
     moc_path.write_text("\n".join(lines), encoding="utf-8")
     return moc_path
+
+
+def resolve_existing_dir(parent: Path, name: str) -> Path:
+    """Find existing child folder matching name case-insensitively, or return parent / name."""
+    if parent.is_dir():
+        name_lower = name.lower()
+        try:
+            for child in parent.iterdir():
+                if child.is_dir() and child.name.lower() == name_lower:
+                    return child
+        except Exception:
+            pass
+    target = parent / name
+    target.mkdir(parents=True, exist_ok=True)
+    return target
 
 
 def save_lesson_note(
@@ -139,15 +192,25 @@ def save_lesson_note(
     course_name: str,
     title: str,
     content: str,
+    space_name: Optional[str] = None,
+    section_name: Optional[str] = None,
 ) -> Path:
-    """Save lesson note inside `<vault>/<courses_folder>/<course_name>/<title>.md`."""
-    target_dir = vault_path / courses_folder / sanitize_filename(course_name)
-    target_dir.mkdir(parents=True, exist_ok=True)
+    """Save lesson note inside `<vault>/<courses_folder>/<course_name>/[<space_name>/][<section_name>/]<title>.md`."""
+    courses_dir = vault_path / courses_folder
+    courses_dir.mkdir(parents=True, exist_ok=True)
 
-    note_path = target_dir / f"{sanitize_filename(title)}.md"
+    course_dir = resolve_existing_dir(courses_dir, sanitize_filename(course_name))
+
+    current_dir = course_dir
+    if space_name:
+        current_dir = resolve_existing_dir(current_dir, sanitize_filename(space_name))
+    if section_name:
+        current_dir = resolve_existing_dir(current_dir, sanitize_filename(section_name))
+
+    note_path = current_dir / f"{sanitize_filename(title)}.md"
     note_path.write_text(content, encoding="utf-8")
 
-    # Keep MOC updated
-    update_course_moc(target_dir, course_name)
+    # Keep MOC updated at root course folder
+    update_course_moc(course_dir, course_name)
 
     return note_path

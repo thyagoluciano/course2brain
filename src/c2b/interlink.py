@@ -225,6 +225,23 @@ def index_note(vault_path: Path, note_path: Path, db_path: Path) -> None:
         conn.close()
 
 
+def prune_stale_embeddings(vault_path: Path, db_path: Path) -> int:
+    """Remove embeddings for notes that no longer exist on disk."""
+    conn = init_db(db_path)
+    try:
+        cursor = conn.execute("SELECT path FROM note_embeddings")
+        to_delete = []
+        for (rel,) in cursor.fetchall():
+            if not (vault_path / rel).is_file():
+                to_delete.append((rel,))
+        if to_delete:
+            conn.executemany("DELETE FROM note_embeddings WHERE path = ?", to_delete)
+            conn.commit()
+        return len(to_delete)
+    finally:
+        conn.close()
+
+
 def find_candidates(
     vault_path: Path,
     db_path: Path,
@@ -456,7 +473,10 @@ def interlink_all(
 
     notes = discover_notes_to_index(vault, include_folders=inc, exclude_folders=exc)
 
-    # 1. Index all discovered notes first
+    # 1. Prune stale embeddings for deleted or moved files
+    prune_stale_embeddings(vault, db_path)
+
+    # 2. Index all discovered notes first
     for n in notes:
         index_note(vault, n, db_path)
 

@@ -50,3 +50,54 @@ def test_save_lesson_note_and_moc(tmp_path: Path):
     assert moc_path.exists()
     moc_content = moc_path.read_text(encoding="utf-8")
     assert "- [[01 - Bounded Contexts]]" in moc_content
+
+
+def test_save_lesson_note_with_space_and_section(tmp_path: Path):
+    vault = tmp_path / "MyVault"
+    note_path = save_lesson_note(
+        vault_path=vault,
+        courses_folder="10-Cursos",
+        course_name="Tech Leads club",
+        title="02. Tasks, Testes, Quality Gates e Paralelização",
+        content="# Conteudo",
+        space_name="IA First Dev",
+        section_name="03 - Desenvolvimento em Escala com IA",
+    )
+
+    expected_path = (
+        vault
+        / "10-Cursos"
+        / "Tech Leads club"
+        / "IA First Dev"
+        / "03 - Desenvolvimento em Escala com IA"
+        / "02. Tasks, Testes, Quality Gates e Paralelização.md"
+    )
+    assert note_path == expected_path
+    assert note_path.exists()
+
+    # Verify MOC at root of course
+    moc_path = vault / "10-Cursos" / "Tech Leads club" / "_Indice - Tech Leads club.md"
+    assert moc_path.exists()
+    moc_content = moc_path.read_text(encoding="utf-8")
+    assert "### IA First Dev" in moc_content
+    assert "#### 03 - Desenvolvimento em Escala com IA" in moc_content
+    assert "- [[02. Tasks, Testes, Quality Gates e Paralelização]]" in moc_content
+
+
+def test_resolve_existing_dir_case_insensitive(tmp_path: Path):
+    vault = tmp_path / "MyVault"
+    existing = vault / "10-Cursos" / "Tech Leads club" / "IA First Dev"
+    existing.mkdir(parents=True, exist_ok=True)
+
+    note_path = save_lesson_note(
+        vault_path=vault,
+        courses_folder="10-Cursos",
+        course_name="Tech Leads Club",
+        title="03. Quando Usar Sub Agents",
+        content="# Sub Agents",
+        space_name="ia first dev",
+        section_name="03 - Desenvolvimento em Escala com IA",
+    )
+
+    assert "Tech Leads club/IA First Dev" in str(note_path)
+    assert note_path.exists()

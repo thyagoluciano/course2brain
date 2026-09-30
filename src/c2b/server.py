@@ -28,6 +28,8 @@ class LessonLink(BaseModel):
 class LessonRequest(BaseModel):
     platform: str = "generic"
     course_name: str = "Curso Online"
+    space_name: Optional[str] = None
+    section_name: Optional[str] = None
     title: str = "Aula Sem Titulo"
     captions_text: str = ""
     notes_text: str = ""
@@ -88,6 +90,8 @@ def create_app(cfg: Optional[Config] = None) -> FastAPI:
 
         title = payload.get("title") or "Aula Sem Titulo"
         course_name = payload.get("course_name") or "Curso Online"
+        space_name = payload.get("space_name")
+        section_name = payload.get("section_name")
         captions_raw = payload.get("captions_text") or ""
         notes_raw = payload.get("notes_text") or ""
         page_url = payload.get("page_url") or ""
@@ -131,6 +135,8 @@ def create_app(cfg: Optional[Config] = None) -> FastAPI:
                 course_name=course_name,
                 title=title,
                 content=formatted_md,
+                space_name=space_name,
+                section_name=section_name,
             )
         except Exception as e:
             logger.error("Error saving note to vault: %s", e)
