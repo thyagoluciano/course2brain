@@ -1,0 +1,26 @@
+# course2brain Configuration File Example
+# Copy this file to `c2b.toml` or `~/.config/c2b/config.toml`
+
+[vault]
+# Absolute path to your Obsidian vault (use ~ for home directory)
+path = "~/Obsidian/SecondBrain"
+courses_folder = "10-Cursos"
+concepts_folder = "20-Conceitos"
+
+[gemini]
+# Leave empty to read from the GEMINI_API_KEY environment variable
+api_key = ""
+model = "gemini-3.8-flash"
+
+[interlink]
+# Automatically discover and inject semantic links into Obsidian Graph View
+enabled = true
+similarity_threshold = 0.78
+max_links = 5
+embedding_model = "all-MiniLM-L6-v2"
+# Path to vectors database (defaults to <vault>/_sistema/vectors.db if empty)
+db_path = ""
+
+[server]
+host = "127.0.0.1"
+port = 8765

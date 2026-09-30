@@ -1,0 +1,57 @@
+# Ambientes Virtuais e Python
+.venv/
+env/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testes e Qualidade
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Configurações Locais e Chaves (Privadas)
+c2b.toml
+*.local.toml
+.env
+.env.*
+
+# Plugins Privados e Mídia Local
+plugins/
+!plugins/README.md
+videos/
+*.mp4
+*.mkv
+*.webm
+
+# Obsidian e Cofres Locais
+.obsidian/workspace*
+.obsidian/cache*
+.trash/
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+*.swp
+*~
