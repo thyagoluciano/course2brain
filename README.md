@@ -19,7 +19,7 @@ Online courses and learning communities (Circle.so, Skool, Hotmart, etc.) contai
 - 🔌 **Pluggable Extractor Strategy**: Clean `BaseExtractor` interface making it trivial to add support for any learning platform (`Circle.so`, `Skool`, `Coursera`, etc.).
 - 🏗️ **Instant Vault Scaffolder (`c2b init-vault`)**: Bootstraps an Obsidian Second Brain in seconds with study folders (`00-Inbox/`, `10-Cursos/`, `20-Conceitos/`), note templates, and pre-calibrated Graph View colors.
 - 🤖 **Deep Cognitive Synthesis**: Generates high-density study notes (Executive Summary, Core Concepts with Trade-offs, Practical Engineering Checklists, Active Recall questions) using Gemini 3.8 Flash.
-- 🕸️ **Embedded Auto-Interlink**: Discovers conceptually related notes across courses using vector search (`sqlite-vec`) and AI validation, injecting bidirectional wikilinks into `## 🔗 Conexões Relacionadas`.
+- 🕸️ **Flexible Vault Indexing & Auto-Interlink**: Discovers conceptually related notes across courses, articles (`50-Conteudo/`), concepts (`20-Conceitos/`), or the entire vault (`["*"]`). Uses vector search (`sqlite-vec`) and AI validation to inject bidirectional wikilinks into `## 🔗 Conexões Relacionadas`.
 - 🛡️ **Zero-ToS-Risk & Local Plugin System**: Public codebase has zero video scraping or DRM bypass routines. Private plugins (e.g., local video downloaders for external drives) live safely in the gitignored `plugins/` directory.
 
 ---
@@ -113,6 +113,15 @@ export GEMINI_API_KEY="your-gemini-api-key"
 export C2B_VAULT_PATH="~/Obsidian/SecondBrain"
 ```
 
+You can customize which vault folders participate in the semantic graph:
+
+```toml
+[interlink]
+# Specific folders or ["*"] for the entire vault
+include_folders = ["10-Cursos", "50-Conteudo", "20-Conceitos"]
+exclude_folders = [".obsidian", "_sistema", ".trash", "90-Templates", ".git"]
+```
+
 ### 5. Install the Chrome Extension
 
 1. Open Chrome and navigate to `chrome://extensions/`
@@ -150,11 +159,17 @@ c2b serve --port 8765
 # Initialize or inspect a study vault
 c2b init-vault /path/to/vault
 
-# Re-index and interlink all notes in the vault
+# Re-index and interlink notes in configured folders (include_folders)
 c2b linkar --all
 
-# Interlink a specific note
-c2b linkar "01 - Bounded Contexts.md"
+# Force re-indexing and interlinking across the ENTIRE Obsidian vault
+c2b linkar --vault
+
+# Index and interlink a specific folder under the vault
+c2b linkar --folder "50-Conteudo"
+
+# Interlink a specific note anywhere in the vault
+c2b linkar "50-Conteudo/Substack/Artigo.md"
 
 # Simulate interlinking without modifying files
 c2b linkar --all --dry-run

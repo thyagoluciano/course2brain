@@ -19,6 +19,15 @@ class GeminiConfig:
     model: str = "gemini-3.8-flash"
 
 
+DEFAULT_EXCLUDE_FOLDERS: list[str] = [
+    ".obsidian",
+    "_sistema",
+    ".trash",
+    "90-Templates",
+    ".git",
+]
+
+
 @dataclass
 class InterlinkConfig:
     enabled: bool = True
@@ -26,6 +35,8 @@ class InterlinkConfig:
     max_links: int = 5
     embedding_model: str = "all-MiniLM-L6-v2"
     db_path: Path | None = None
+    include_folders: list[str] = field(default_factory=lambda: ["10-Cursos"])
+    exclude_folders: list[str] = field(default_factory=lambda: list(DEFAULT_EXCLUDE_FOLDERS))
 
 
 @dataclass
@@ -102,12 +113,31 @@ def load_config(config_path: Path | str | None = None) -> Config:
         if raw_db_path
         else vault.path / "_sistema" / "vectors.db"
     )
+
+    raw_include_folders = i_data.get("include_folders")
+    if raw_include_folders is None:
+        include_folders = [vault.courses_folder]
+    elif isinstance(raw_include_folders, str):
+        include_folders = [raw_include_folders]
+    else:
+        include_folders = list(raw_include_folders)
+
+    raw_exclude_folders = i_data.get("exclude_folders")
+    if raw_exclude_folders is None:
+        exclude_folders = list(DEFAULT_EXCLUDE_FOLDERS)
+    elif isinstance(raw_exclude_folders, str):
+        exclude_folders = [raw_exclude_folders]
+    else:
+        exclude_folders = list(raw_exclude_folders)
+
     interlink = InterlinkConfig(
         enabled=i_data.get("enabled", True),
         similarity_threshold=float(i_data.get("similarity_threshold", 0.78)),
         max_links=int(i_data.get("max_links", 5)),
         embedding_model=i_data.get("embedding_model", "all-MiniLM-L6-v2"),
         db_path=db_path,
+        include_folders=include_folders,
+        exclude_folders=exclude_folders,
     )
 
     # Server

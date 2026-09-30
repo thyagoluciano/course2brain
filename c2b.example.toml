@@ -20,6 +20,11 @@ max_links = 5
 embedding_model = "all-MiniLM-L6-v2"
 # Path to vectors database (defaults to <vault>/_sistema/vectors.db if empty)
 db_path = ""
+# Folders relative to the vault to index and discover links for.
+# Use ["*"] to index the entire vault (excluding exclude_folders).
+include_folders = ["10-Cursos", "50-Conteudo", "20-Conceitos"]
+# Folders and system files strictly ignored by the indexer
+exclude_folders = [".obsidian", "_sistema", ".trash", "90-Templates", ".git"]
 
 [server]
 host = "127.0.0.1"

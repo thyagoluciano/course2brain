@@ -93,14 +93,100 @@ def init_db(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
+def is_excluded_path(rel_path: Path, exclude_folders: List[str] | None = None) -> bool:
+    """Check if relative path touches any excluded directory or system prefix."""
+    excludes = set(exclude_folders or [".obsidian", "_sistema", ".trash", "90-Templates", ".git"])
+    for part in rel_path.parts:
+        if part.startswith(".") or part.startswith("_"):
+            return True
+        if part in excludes:
+            return True
+    return False
+
+
+def discover_notes_to_index(
+    vault_path: Path,
+    include_folders: List[str] | None = None,
+    exclude_folders: List[str] | None = None,
+) -> List[Path]:
+    """Discover all eligible markdown notes in vault according to scope and exclusions."""
+    inc = include_folders or ["10-Cursos"]
+    exc = exclude_folders or [".obsidian", "_sistema", ".trash", "90-Templates", ".git"]
+
+    if "*" in inc or "all" in [f.lower() for f in inc]:
+        target_roots = [vault_path]
+    else:
+        target_roots = [vault_path / f for f in inc]
+
+    notes: List[Path] = []
+    for root in target_roots:
+        if not root.exists():
+            continue
+        if root.is_file() and root.suffix.lower() == ".md":
+            try:
+                rel = root.relative_to(vault_path)
+            except ValueError:
+                rel = root
+            if not is_excluded_path(rel, exc):
+                notes.append(root)
+            continue
+
+        for p in root.rglob("*.md"):
+            try:
+                rel = p.relative_to(vault_path)
+            except ValueError:
+                rel = p
+            if not is_excluded_path(rel, exc):
+                notes.append(p)
+
+    seen: set[Path] = set()
+    unique: List[Path] = []
+    for n in sorted(notes):
+        res = n.resolve()
+        if res not in seen:
+            seen.add(res)
+            unique.append(n)
+
+    return unique
+
+
 def extract_note_text_for_embedding(content: str) -> Tuple[str, str]:
     """Extract clean title and executive summary / core concepts for semantic embedding."""
+    # 1. Title: first # H1 or YAML title
     title_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
-    title = title_match.group(1).strip() if title_match else "Sem Titulo"
+    title = title_match.group(1).strip() if title_match else ""
+    if not title:
+        yaml_title = re.search(r"^title:\s*[\"']?([^\"'\n]+)[\"']?", content, re.MULTILINE)
+        title = yaml_title.group(1).strip() if yaml_title else "Sem Titulo"
 
-    # Extract TL;DR or introductory section
-    tldr_match = re.search(r"##\s*📌\s*Resumo Executivo[^\n]*\n([\s\S]*?)(?=\n##|\Z)", content)
-    summary = tldr_match.group(1).strip() if tldr_match else content[:1000]
+    # 2. Strip Frontmatter YAML for body analysis
+    body = re.sub(r"^---\n[\s\S]*?\n---\n?", "", content).strip()
+
+    # 3. Known summary sections
+    section_patterns = [
+        r"##\s*📌\s*Resumo Executivo[^\n]*\n([\s\S]*?)(?=\n##|\Z)",
+        r"##\s*Resumo[^\n]*\n([\s\S]*?)(?=\n##|\Z)",
+        r"##\s*TL;DR[^\n]*\n([\s\S]*?)(?=\n##|\Z)",
+        r"##\s*Visão Geral[^\n]*\n([\s\S]*?)(?=\n##|\Z)",
+        r"##\s*Introdução[^\n]*\n([\s\S]*?)(?=\n##|\Z)",
+        r"##\s*Contexto[^\n]*\n([\s\S]*?)(?=\n##|\Z)",
+    ]
+    summary = ""
+    for pat in section_patterns:
+        m = re.search(pat, body, re.IGNORECASE)
+        if m:
+            summary = m.group(1).strip()
+            break
+
+    # 4. Fallback to YAML description/summary or beginning of body
+    if not summary:
+        yaml_desc = re.search(
+            r"^(?:description|summary):\s*[\"']?([^\"'\n]+)[\"']?", content, re.MULTILINE
+        )
+        if yaml_desc:
+            summary = yaml_desc.group(1).strip()
+        else:
+            summary = body[:1200].strip()
 
     return title, summary
 
@@ -118,6 +204,13 @@ def index_note(vault_path: Path, note_path: Path, db_path: Path) -> None:
     vec = compute_embedding(text_to_embed)
     blob = serialize_vector(vec)
 
+    # Relative category / parent path inside vault
+    try:
+        parent_rel = str(note_path.parent.relative_to(vault_path))
+        course_category = parent_rel if parent_rel != "." else note_path.parent.name
+    except ValueError:
+        course_category = note_path.parent.name
+
     conn = init_db(db_path)
     try:
         conn.execute(
@@ -125,7 +218,7 @@ def index_note(vault_path: Path, note_path: Path, db_path: Path) -> None:
             INSERT OR REPLACE INTO note_embeddings (path, title, course, summary, embedding, updated_at)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (rel_path, title, note_path.parent.name, summary, blob, time.time()),
+            (rel_path, title, course_category, summary, blob, time.time()),
         )
         conn.commit()
     finally:
@@ -341,15 +434,29 @@ def interlink_note(
     }
 
 
-def interlink_all(cfg: Config, *, dry_run: bool = False) -> dict[str, Any]:
-    """Batch index all notes in the vault and run interlinking."""
+def interlink_all(
+    cfg: Config,
+    *,
+    folders: List[str] | None = None,
+    whole_vault: bool = False,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Batch index notes according to scope and run interlinking."""
     vault = cfg.vault.path
-    courses_dir = vault / cfg.vault.courses_folder
     db_path = cfg.interlink.db_path or vault / "_sistema" / "vectors.db"
 
-    notes = [p for p in courses_dir.rglob("*.md") if not p.name.startswith("_")]
+    if whole_vault:
+        inc = ["*"]
+    elif folders:
+        inc = folders
+    else:
+        inc = cfg.interlink.include_folders or [cfg.vault.courses_folder]
 
-    # 1. Index all notes first
+    exc = cfg.interlink.exclude_folders
+
+    notes = discover_notes_to_index(vault, include_folders=inc, exclude_folders=exc)
+
+    # 1. Index all discovered notes first
     for n in notes:
         index_note(vault, n, db_path)
 

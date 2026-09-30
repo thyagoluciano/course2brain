@@ -58,3 +58,34 @@ def test_env_overrides(tmp_path: Path, monkeypatch):
     assert str(cfg.vault.path) == str(tmp_path / "env-vault")
     assert cfg.gemini.api_key == "env-key"
     assert cfg.server.port == 9999
+
+
+def test_interlink_folders_config(tmp_path: Path):
+    toml_content = """
+    [vault]
+    courses_folder = "CursosCustom"
+
+    [interlink]
+    include_folders = ["50-Conteudo", "20-Conceitos"]
+    exclude_folders = [".obsidian", "_sistema", "arquivo"]
+    """
+    cfg_file = tmp_path / "c2b.toml"
+    cfg_file.write_text(toml_content, encoding="utf-8")
+
+    cfg = load_config(cfg_file)
+    assert cfg.interlink.include_folders == ["50-Conteudo", "20-Conceitos"]
+    assert cfg.interlink.exclude_folders == [".obsidian", "_sistema", "arquivo"]
+
+
+def test_interlink_folders_defaults_fallback(tmp_path: Path):
+    toml_content = """
+    [vault]
+    courses_folder = "CustomCourses"
+    """
+    cfg_file = tmp_path / "c2b.toml"
+    cfg_file.write_text(toml_content, encoding="utf-8")
+
+    cfg = load_config(cfg_file)
+    assert cfg.interlink.include_folders == ["CustomCourses"]
+    assert ".obsidian" in cfg.interlink.exclude_folders
+    assert "_sistema" in cfg.interlink.exclude_folders

@@ -138,7 +138,13 @@ Auto-Interlink: {"[green]Ativado[/green]" if cfg.interlink.enabled else "[yellow
 def linkar(
     nota: Optional[str] = typer.Argument(None, help="Caminho ou nome da nota a interligar"),
     all_notes: bool = typer.Option(
-        False, "--all", "-a", "--tudo", help="Interlink all notes in the vault"
+        False, "--all", "-a", "--tudo", help="Interligar notas do escopo configurado no c2b.toml"
+    ),
+    vault: bool = typer.Option(
+        False, "--vault", help="Forçar interligação em TODO o cofre Obsidian"
+    ),
+    folder: Optional[str] = typer.Option(
+        None, "--folder", "-f", help="Pasta específica dentro do cofre para interligar"
     ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Apenas simular sem alterar os arquivos"),
     config_file: Optional[Path] = typer.Option(None, "--config", "-c", help="Arquivo c2b.toml"),
@@ -146,9 +152,20 @@ def linkar(
     """Executa a descoberta semântica e conecta notas no Grafo do Obsidian."""
     cfg = load_config(config_file)
 
-    if all_notes or not nota:
-        console.print("[cyan]Executando Auto-Interlink em lote em todo o cofre...[/cyan]")
-        res = interlink_all(cfg, dry_run=dry_run)
+    if vault or folder or all_notes or not nota:
+        folders_param = [folder] if folder else None
+        whole_vault = vault
+
+        if whole_vault:
+            scope_desc = "em TODO o cofre Obsidian"
+        elif folder:
+            scope_desc = f"na pasta '{folder}'"
+        else:
+            inc = cfg.interlink.include_folders or [cfg.vault.courses_folder]
+            scope_desc = f"nas pastas configuradas: {', '.join(inc)}"
+
+        console.print(f"[cyan]Executando Auto-Interlink {scope_desc}...[/cyan]")
+        res = interlink_all(cfg, folders=folders_param, whole_vault=whole_vault, dry_run=dry_run)
         total_notes = res.get("total_notes", 0)
         total_links = res.get("total_links_injected", 0)
         mode_str = "[yellow](Dry Run)[/yellow]" if dry_run else ""
@@ -160,9 +177,9 @@ def linkar(
     # Interligar nota específica
     caminho_nota = Path(nota)
     if not caminho_nota.is_absolute():
-        caminho_nota = (cfg.vault.path / cfg.vault.courses_folder / nota).resolve()
+        caminho_nota = (cfg.vault.path / nota).resolve()
         if not caminho_nota.exists():
-            caminho_nota = (cfg.vault.path / nota).resolve()
+            caminho_nota = (cfg.vault.path / cfg.vault.courses_folder / nota).resolve()
 
     if not caminho_nota.exists():
         console.print(f"[red]Erro:[/red] Nota não encontrada em: {caminho_nota}")
