@@ -151,13 +151,13 @@ c2b serve --port 8765
 c2b init-vault /path/to/vault
 
 # Re-index and interlink all notes in the vault
-c2b linkar --tudo
+c2b linkar --all
 
 # Interlink a specific note
 c2b linkar "01 - Bounded Contexts.md"
 
 # Simulate interlinking without modifying files
-c2b linkar --tudo --dry-run
+c2b linkar --all --dry-run
 
 # Check current configuration, vault status and active plugins
 c2b status

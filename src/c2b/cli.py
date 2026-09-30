@@ -134,16 +134,19 @@ Auto-Interlink: {"[green]Ativado[/green]" if cfg.interlink.enabled else "[yellow
 
 
 @app.command("linkar")
+@app.command("link")
 def linkar(
     nota: Optional[str] = typer.Argument(None, help="Caminho ou nome da nota a interligar"),
-    tudo: bool = typer.Option(False, "--tudo", "-t", help="Interligar todas as notas do cofre"),
+    all_notes: bool = typer.Option(
+        False, "--all", "-a", "--tudo", help="Interlink all notes in the vault"
+    ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Apenas simular sem alterar os arquivos"),
     config_file: Optional[Path] = typer.Option(None, "--config", "-c", help="Arquivo c2b.toml"),
 ):
     """Executa a descoberta semântica e conecta notas no Grafo do Obsidian."""
     cfg = load_config(config_file)
 
-    if tudo or not nota:
+    if all_notes or not nota:
         console.print("[cyan]Executando Auto-Interlink em lote em todo o cofre...[/cyan]")
         res = interlink_all(cfg, dry_run=dry_run)
         total_notes = res.get("total_notes", 0)
