@@ -6,14 +6,18 @@
   <title>course2brain</title>
   <style>
     :root {
-      --bg: #0f172a;
+      --bg: #0b1120;
       --card: #1e293b;
+      --card-border: #334155;
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --accent: #6366f1;
       --accent-hover: #4f46e5;
+      --accent-glow: rgba(99, 102, 241, 0.25);
       --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
       --error: #ef4444;
+      --error-bg: rgba(239, 68, 68, 0.12);
       --border: #334155;
     }
 
@@ -24,20 +28,21 @@
     }
 
     body {
-      width: 350px;
+      width: 360px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
       padding: 16px;
       font-size: 13px;
+      line-height: 1.4;
     }
 
     header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
-      padding-bottom: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
       border-bottom: 1px solid var(--border);
     }
 
@@ -83,10 +88,10 @@
 
     .card {
       background: var(--card);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 12px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .meta-row {
@@ -106,7 +111,7 @@
 
     .meta-val {
       font-weight: 500;
-      max-width: 190px;
+      max-width: 200px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -114,7 +119,7 @@
 
     .btn-action {
       width: 100%;
-      padding: 10px 14px;
+      padding: 11px 14px;
       background: var(--accent);
       color: #ffffff;
       border: none;
@@ -126,51 +131,177 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      transition: background 0.15s ease, opacity 0.15s ease;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px var(--accent-glow);
     }
 
     .btn-action:hover:not(:disabled) {
       background: var(--accent-hover);
+      box-shadow: 0 4px 12px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-action:active:not(:disabled) {
+      transform: translateY(0);
     }
 
     .btn-action:disabled {
-      opacity: 0.55;
+      opacity: 0.5;
       cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
     }
 
-    .status-box {
-      margin-top: 12px;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      line-height: 1.4;
+    /* Stepper & Visual Progress */
+    .progress-card {
       display: none;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      animation: fadeIn 0.25s ease-out;
     }
 
-    .status-box.info {
-      display: block;
-      background: rgba(99, 102, 241, 0.12);
-      border: 1px solid rgba(99, 102, 241, 0.3);
+    .progress-bar-bg {
+      width: 100%;
+      height: 5px;
+      background: #334155;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #6366f1, #10b981);
+      border-radius: 9999px;
+      transition: width 0.4s ease;
+    }
+
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      transition: opacity 0.2s ease;
+    }
+
+    .step-item.pending {
+      opacity: 0.4;
+    }
+
+    .step-item.active {
+      opacity: 1;
+    }
+
+    .step-item.done {
+      opacity: 1;
+    }
+
+    .step-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+      background: #334155;
+      color: #94a3b8;
+      transition: all 0.2s ease;
+      margin-top: 1px;
+    }
+
+    .step-item.active .step-icon {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .step-item.done .step-icon {
+      background: var(--success);
+      color: #ffffff;
+    }
+
+    .step-item.error .step-icon {
+      background: var(--error);
+      color: #ffffff;
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .step-item.pending .step-title {
+      color: var(--text-muted);
+    }
+
+    .step-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .step-item.active .step-desc {
       color: #c7d2fe;
     }
 
-    .status-box.success {
+    /* Result Banner */
+    .result-banner {
+      display: none;
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .result-banner.success {
       display: block;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      background: var(--success-bg);
+      border: 1px solid rgba(16, 185, 129, 0.35);
       color: #6ee7b7;
     }
 
-    .status-box.error {
+    .result-banner.error {
       display: block;
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: var(--error-bg);
+      border: 1px solid rgba(239, 68, 68, 0.35);
       color: #fca5a5;
     }
 
-    .spinner {
-      width: 14px;
-      height: 14px;
+    .result-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .result-detail {
+      font-size: 11px;
+      opacity: 0.9;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .spinner-sm {
+      width: 10px;
+      height: 10px;
       border: 2px solid rgba(255, 255, 255, 0.3);
       border-top-color: #fff;
       border-radius: 50%;
@@ -179,6 +310,11 @@
 
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
@@ -200,7 +336,7 @@
       <span id="platformName" class="meta-val">Detectando...</span>
     </div>
     <div class="meta-row">
-      <span class="meta-label">Página:</span>
+      <span class="meta-label">Aula / Página:</span>
       <span id="pageTitle" class="meta-val">Carregando...</span>
     </div>
   </div>
@@ -210,7 +346,56 @@
     <span id="btnText">Sintetizar & Salvar no Brain</span>
   </button>
 
-  <div id="statusBox" class="status-box"></div>
+  <!-- Visual Stepper Progress Tracker -->
+  <div id="progressCard" class="progress-card">
+    <div class="progress-bar-bg">
+      <div id="progressBarFill" class="progress-bar-fill"></div>
+    </div>
+
+    <div class="step-list">
+      <!-- Step 1: Extração -->
+      <div id="stepExtract" class="step-item pending">
+        <div class="step-icon">1</div>
+        <div class="step-content">
+          <div class="step-title">Extração do Conteúdo</div>
+          <div id="stepExtractDesc" class="step-desc">Aguardando início...</div>
+        </div>
+      </div>
+
+      <!-- Step 2: Síntese IA -->
+      <div id="stepSynthesize" class="step-item pending">
+        <div class="step-icon">2</div>
+        <div class="step-content">
+          <div class="step-title">Síntese com Gemini (3.8 Flash)</div>
+          <div id="stepSynthesizeDesc" class="step-desc">Aguardando extração...</div>
+        </div>
+      </div>
+
+      <!-- Step 3: Vault Obsidian -->
+      <div id="stepVault" class="step-item pending">
+        <div class="step-icon">3</div>
+        <div class="step-content">
+          <div class="step-title">Gravação no Vault</div>
+          <div id="stepVaultDesc" class="step-desc">Aguardando síntese...</div>
+        </div>
+      </div>
+
+      <!-- Step 4: Auto-Interlink & Grafo -->
+      <div id="stepGraph" class="step-item pending">
+        <div class="step-icon">4</div>
+        <div class="step-content">
+          <div class="step-title">Auto-Interlink no Grafo</div>
+          <div id="stepGraphDesc" class="step-desc">Aguardando gravação...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result Banner -->
+  <div id="resultBanner" class="result-banner">
+    <div id="resultTitle" class="result-title"></div>
+    <div id="resultDetail" class="result-detail"></div>
+  </div>
 
   <script src="popup.js"></script>
 </body>
