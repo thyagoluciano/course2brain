@@ -176,6 +176,7 @@ To add private automation (such as downloading media to an external drive or tri
        # Modify or enrich payload before Gemini summarization
        return payload
 
+
    def on_post_save(note_path, payload: dict, config) -> None:
        # Run actions after the note is saved
        pass

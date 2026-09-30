@@ -31,7 +31,11 @@ def clean_vtt(content: str) -> str:
             skip_block = False
             continue
 
-        if stripped.startswith("WEBVTT") or stripped.startswith("NOTE") or stripped.startswith("STYLE"):
+        if (
+            stripped.startswith("WEBVTT")
+            or stripped.startswith("NOTE")
+            or stripped.startswith("STYLE")
+        ):
             skip_block = True
             continue
 

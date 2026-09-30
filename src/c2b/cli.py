@@ -34,7 +34,9 @@ def version():
 
 @app.command("status")
 def status(
-    config_file: Optional[Path] = typer.Option(None, "--config", "-c", help="Caminho do arquivo c2b.toml"),
+    config_file: Optional[Path] = typer.Option(
+        None, "--config", "-c", help="Caminho do arquivo c2b.toml"
+    ),
 ):
     """Exibe o status da configuração, vault do Obsidian e plugins."""
     cfg = load_config(config_file)
@@ -47,12 +49,22 @@ def status(
 
     table.add_row("Versão", f"v{__version__}")
     table.add_row("Caminho do Vault", str(cfg.vault.path))
-    table.add_row("Existe no Disco?", "[green]Sim[/green]" if cfg.vault.path.exists() else "[red]Não[/red]")
+    table.add_row(
+        "Existe no Disco?", "[green]Sim[/green]" if cfg.vault.path.exists() else "[red]Não[/red]"
+    )
     table.add_row("Pasta de Cursos", cfg.vault.courses_folder)
     table.add_row("Pasta de Conceitos", cfg.vault.concepts_folder)
     table.add_row("Modelo Gemini", cfg.gemini.model)
-    table.add_row("API Key Configurada?", "[green]Sim[/green]" if bool(cfg.gemini.api_key) else "[yellow]Não (defina GEMINI_API_KEY)[/yellow]")
-    table.add_row("Auto-Interlink Ativo?", "[green]Sim[/green]" if cfg.interlink.enabled else "[yellow]Não[/yellow]")
+    table.add_row(
+        "API Key Configurada?",
+        "[green]Sim[/green]"
+        if bool(cfg.gemini.api_key)
+        else "[yellow]Não (defina GEMINI_API_KEY)[/yellow]",
+    )
+    table.add_row(
+        "Auto-Interlink Ativo?",
+        "[green]Sim[/green]" if cfg.interlink.enabled else "[yellow]Não[/yellow]",
+    )
     table.add_row("Limiar de Similaridade", str(cfg.interlink.similarity_threshold))
     table.add_row("Porta do Servidor", f"{cfg.server.host}:{cfg.server.port}")
     table.add_row("Plugins Detectados", f"{len(plugins)} módulos ativos")
@@ -60,24 +72,34 @@ def status(
     console.print(table)
 
     if plugin_dirs:
-        console.print(f"[dim]Pastas de plugins observadas: {', '.join(str(d) for d in plugin_dirs)}[/dim]")
+        console.print(
+            f"[dim]Pastas de plugins observadas: {', '.join(str(d) for d in plugin_dirs)}[/dim]"
+        )
 
 
 @app.command("init-vault")
 def init_vault_cmd(
-    target_path: Path = typer.Argument(..., help="Caminho onde o Vault do Obsidian será inicializado"),
+    target_path: Path = typer.Argument(
+        ..., help="Caminho onde o Vault do Obsidian será inicializado"
+    ),
 ):
     """Inicializa a estrutura do Vault Second Brain para Obsidian."""
     console.print(f"[cyan]Inicializando Second Brain em:[/cyan] [bold]{target_path}[/bold]...")
     created = init_vault(target_path)
 
     if not created:
-        console.print("[yellow]O Vault já possuía todas as pastas e templates configurados![/yellow]")
+        console.print(
+            "[yellow]O Vault já possuía todas as pastas e templates configurados![/yellow]"
+        )
         return
 
     console.print(f"[bold green]✓ Sucesso![/bold green] {len(created)} itens estruturados:")
     for item in created:
-        rel = item.relative_to(target_path.resolve()) if item.is_relative_to(target_path.resolve()) else item
+        rel = (
+            item.relative_to(target_path.resolve())
+            if item.is_relative_to(target_path.resolve())
+            else item
+        )
         console.print(f"  [dim]+[/dim] {rel}")
 
     console.print("\n[bold]Próximos passos:[/bold]")
@@ -90,7 +112,9 @@ def init_vault_cmd(
 def serve(
     host: Optional[str] = typer.Option(None, "--host", "-h", help="Endereço de escuta do servidor"),
     port: Optional[int] = typer.Option(None, "--port", "-p", help="Porta do servidor HTTP"),
-    config_file: Optional[Path] = typer.Option(None, "--config", "-c", help="Arquivo c2b.toml customizado"),
+    config_file: Optional[Path] = typer.Option(
+        None, "--config", "-c", help="Arquivo c2b.toml customizado"
+    ),
 ):
     """Inicia o servidor local para receber capturas da extensão Chrome."""
     cfg = load_config(config_file)
@@ -101,7 +125,7 @@ def serve(
 Escutando em: [green]http://{listen_host}:{listen_port}[/green]
 Vault Obsidian: [yellow]{cfg.vault.path}[/yellow]
 Modelo Gemini: [magenta]{cfg.gemini.model}[/magenta]
-Auto-Interlink: {'[green]Ativado[/green]' if cfg.interlink.enabled else '[yellow]Desativado[/yellow]'}"""
+Auto-Interlink: {"[green]Ativado[/green]" if cfg.interlink.enabled else "[yellow]Desativado[/yellow]"}"""
 
     console.print(Panel(banner, border_style="cyan"))
 
@@ -125,7 +149,9 @@ def linkar(
         total_notes = res.get("total_notes", 0)
         total_links = res.get("total_links_injected", 0)
         mode_str = "[yellow](Dry Run)[/yellow]" if dry_run else ""
-        console.print(f"[bold green]✓ Concluído {mode_str}:[/bold green] {total_notes} notas analisadas, {total_links} conexões injetadas no Grafo!")
+        console.print(
+            f"[bold green]✓ Concluído {mode_str}:[/bold green] {total_notes} notas analisadas, {total_links} conexões injetadas no Grafo!"
+        )
         return
 
     # Interligar nota específica

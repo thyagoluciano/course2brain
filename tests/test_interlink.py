@@ -58,7 +58,13 @@ Uso prático do Apache Kafka para mensageria e streaming de eventos em larga esc
 
     # Search candidates for note 1
     vec1 = compute_embedding("Event-Driven Architecture\nKafka e mensageria")
-    candidates = find_candidates(vault, db_path, "10-Cursos/Microservices/01 - Event-Driven.md", vec1, similarity_threshold=0.0)
+    candidates = find_candidates(
+        vault,
+        db_path,
+        "10-Cursos/Microservices/01 - Event-Driven.md",
+        vec1,
+        similarity_threshold=0.0,
+    )
 
     assert len(candidates) == 1
     assert candidates[0]["title"] == "Kafka Fundamentals"
@@ -78,7 +84,9 @@ def test_interlink_note_dry_run(tmp_path: Path):
 
     cfg = Config(
         vault=VaultConfig(path=vault, courses_folder="10-Cursos"),
-        interlink=InterlinkConfig(enabled=True, similarity_threshold=0.0, db_path=vault / "vectors.db"),
+        interlink=InterlinkConfig(
+            enabled=True, similarity_threshold=0.0, db_path=vault / "vectors.db"
+        ),
     )
 
     res = interlink_note(cfg, note1, dry_run=True)

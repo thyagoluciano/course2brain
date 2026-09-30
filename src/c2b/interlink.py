@@ -220,7 +220,9 @@ def validate_connections_with_llm(
         ],
     }
 
-    user_message = f"{VALIDATION_PROMPT}\n\nDADOS PARA ANÁLISE:\n{json.dumps(prompt_data, ensure_ascii=False)}"
+    user_message = (
+        f"{VALIDATION_PROMPT}\n\nDADOS PARA ANÁLISE:\n{json.dumps(prompt_data, ensure_ascii=False)}"
+    )
 
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     payload = {

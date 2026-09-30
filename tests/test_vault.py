@@ -24,9 +24,9 @@ def test_format_lesson_note():
         links=[{"texto": "Martin Fowler CQRS", "url": "https://martinfowler.com/bliki/CQRS.html"}],
     )
 
-    assert "aula: \"Fundamentos de CQRS\"" in md
-    assert "curso: \"Arquitetura Avançada\"" in md
-    assert "plataforma: \"Circle.so\"" in md
+    assert 'aula: "Fundamentos de CQRS"' in md
+    assert 'curso: "Arquitetura Avançada"' in md
+    assert 'plataforma: "Circle.so"' in md
     assert "[Martin Fowler CQRS](https://martinfowler.com/bliki/CQRS.html)" in md
     assert "## 📝 Transcrição & Notas Brutas" in md
     assert "Transcrição de teste" in md

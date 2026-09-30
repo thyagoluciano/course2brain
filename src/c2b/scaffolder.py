@@ -17,10 +17,10 @@ GRAPH_CONFIG = {
     "showOrphans": True,
     "collapse-color-groups": False,
     "colorGroups": [
-        {"query": "tag:#curso", "color": {"a": 1, "rgb": 3669702}},      # Cyan/Teal
-        {"query": "tag:#conceito", "color": {"a": 1, "rgb": 15024467}},   # Purple/Magenta
-        {"query": "path:10-Cursos", "color": {"a": 1, "rgb": 5753820}},   # Green
-        {"query": "path:20-Conceitos", "color": {"a": 1, "rgb": 16098851}} # Orange
+        {"query": "tag:#curso", "color": {"a": 1, "rgb": 3669702}},  # Cyan/Teal
+        {"query": "tag:#conceito", "color": {"a": 1, "rgb": 15024467}},  # Purple/Magenta
+        {"query": "path:10-Cursos", "color": {"a": 1, "rgb": 5753820}},  # Green
+        {"query": "path:20-Conceitos", "color": {"a": 1, "rgb": 16098851}},  # Orange
     ],
     "collapse-display": False,
     "showArrow": True,
@@ -33,7 +33,7 @@ GRAPH_CONFIG = {
     "linkStrength": 1,
     "linkDistance": 250,
     "scale": 1.0,
-    "close": False
+    "close": False,
 }
 
 APP_CONFIG = {
@@ -43,7 +43,7 @@ APP_CONFIG = {
     "tabSize": 2,
     "newFileLocation": "folder",
     "newFileFolderPath": "00-Inbox",
-    "attachmentFolderPath": "_sistema/anexos"
+    "attachmentFolderPath": "_sistema/anexos",
 }
 
 LESSON_TEMPLATE = """---
@@ -152,7 +152,9 @@ def init_vault(target_path: Path | str) -> List[Path]:
     # 3. .obsidian/graph.json
     graph_json = vault / ".obsidian" / "graph.json"
     if not graph_json.exists():
-        graph_json.write_text(json.dumps(GRAPH_CONFIG, indent=2, ensure_ascii=False), encoding="utf-8")
+        graph_json.write_text(
+            json.dumps(GRAPH_CONFIG, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
         created.append(graph_json)
 
     # 4. _sistema/templates/Template - Aula de Curso.md

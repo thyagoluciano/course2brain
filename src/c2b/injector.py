@@ -40,7 +40,7 @@ def inject_connections_into_markdown(
 
     if match_section:
         start_pos = match_section.start()
-        rest = content[match_section.end():]
+        rest = content[match_section.end() :]
         match_next = re.search(r"(?m)^##\s+", rest)
         end_pos = match_section.end() + match_next.start() if match_next else len(content)
 

@@ -83,7 +83,9 @@ status: concluido
             if url:
                 link_lines.append(f"- [{txt}]({url})")
         if link_lines:
-            links_section = "\n\n## 🔗 Links e Materiais de Referência\n" + "\n".join(link_lines) + "\n"
+            links_section = (
+                "\n\n## 🔗 Links e Materiais de Referência\n" + "\n".join(link_lines) + "\n"
+            )
 
     transcription_section = ""
     if raw_transcription.strip():
@@ -104,18 +106,12 @@ status: concluido
 def update_course_moc(course_dir: Path, course_name: str) -> Path:
     """Generate or update the Course Map of Content (MOC) index."""
     moc_path = course_dir / f"_Indice - {sanitize_filename(course_name)}.md"
-    lessons = sorted(
-        [
-            f.stem
-            for f in course_dir.glob("*.md")
-            if not f.name.startswith("_")
-        ]
-    )
+    lessons = sorted([f.stem for f in course_dir.glob("*.md") if not f.name.startswith("_")])
 
     lines = [
         "---",
         "tipo: moc",
-        f"curso: \"{course_name}\"",
+        f'curso: "{course_name}"',
         "tags:",
         "  - curso",
         "  - moc",
