@@ -171,23 +171,25 @@ c2b serve --port 8765
 c2b init-vault /path/to/vault
 
 # Re-index and interlink notes in configured folders (include_folders)
-c2b linkar --all
+c2b link --all
 
 # Force re-indexing and interlinking across the ENTIRE Obsidian vault
-c2b linkar --vault
+c2b link --vault
 
 # Index and interlink a specific folder under the vault
-c2b linkar --folder "50-Conteudo"
+c2b link --folder "50-Conteudo"
 
 # Interlink a specific note anywhere in the vault
-c2b linkar "50-Conteudo/Substack/Artigo.md"
+c2b link "50-Conteudo/Substack/Artigo.md"
 
 # Simulate interlinking without modifying files
-c2b linkar --all --dry-run
+c2b link --all --dry-run
 
 # Check current configuration, vault status and active plugins
 c2b status
 ```
+
+> **Tip**: `c2b link`, `c2b interlink`, and `c2b linkar` are fully interchangeable aliases. You can also use `-a` or `--tudo` for `--all`.
 
 ---
 

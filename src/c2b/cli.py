@@ -135,6 +135,7 @@ Auto-Interlink: {"[green]Ativado[/green]" if cfg.interlink.enabled else "[yellow
 
 @app.command("linkar")
 @app.command("link")
+@app.command("interlink")
 def linkar(
     nota: Optional[str] = typer.Argument(None, help="Caminho ou nome da nota a interligar"),
     all_notes: bool = typer.Option(
