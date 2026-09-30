@@ -86,9 +86,20 @@ Clone and install dependencies (recommended using [`uv`](https://github.com/astr
 git clone https://github.com/thyagoluciano/course2brain.git
 cd course2brain
 
-# Install in editable mode with development dependencies
+# 1. Create and activate virtual environment
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# 2. Install in editable mode with development dependencies
 uv pip install -e ".[dev]"
 ```
+
+> **Tip**: If you prefer standard Python tools without `uv`:
+> ```bash
+> python -m venv .venv
+> source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+> pip install -e ".[dev]"
+> ```
 
 ### 3. Initialize your Obsidian Study Vault
 
