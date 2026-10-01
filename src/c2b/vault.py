@@ -66,7 +66,11 @@ def format_lesson_note(
     video_embed_section = ""
     video_link_md = ""
     if yt_id:
-        canonical_yt_url = media_url if "youtube.com" in media_url or "youtu.be" in media_url else f"https://www.youtube.com/watch?v={yt_id}"
+        canonical_yt_url = (
+            media_url
+            if "youtube.com" in media_url or "youtu.be" in media_url
+            else f"https://www.youtube.com/watch?v={yt_id}"
+        )
         video_link_md = f"[Assistir no YouTube ↗]({canonical_yt_url})"
         video_embed_section = f"""## 📺 Vídeo da Aula
 <iframe width="100%" height="380" src="https://www.youtube.com/embed/{yt_id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
@@ -112,10 +116,14 @@ status: concluido
     if local_media_path:
         header_items.append(f"> - **Mídia Local:** {local_media_md}")
 
-    header = f"""# {title}
+    header = (
+        f"""# {title}
 
 > [!INFO] Metadados da Aula
-""" + "\n".join(header_items) + "\n"
+"""
+        + "\n".join(header_items)
+        + "\n"
+    )
 
     body = (video_embed_section + summary_content.strip()).strip()
 

@@ -66,7 +66,9 @@ def test_format_lesson_note_with_topics_and_ordering():
     assert 'parte: "01 - Harness Engineering with Claude and Claude Code"' in md
     assert 'topico: "01 - Introduction to Harness Engineering with Claude and Claude Code"' in md
     assert "> - **Parte:** 01 - Harness Engineering with Claude and Claude Code" in md
-    assert "> - **Tópico:** 01 - Introduction to Harness Engineering with Claude and Claude Code" in md
+    assert (
+        "> - **Tópico:** 01 - Introduction to Harness Engineering with Claude and Claude Code" in md
+    )
     assert "# 02. Prerequisites" in md
 
 
