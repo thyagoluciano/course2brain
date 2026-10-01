@@ -15,6 +15,14 @@ def sanitize_filename(name: str) -> str:
     return sanitized or "Sem_Titulo"
 
 
+def _extract_youtube_id(url: Optional[str]) -> Optional[str]:
+    """Extract 11-character YouTube video ID from URL if present."""
+    if not url:
+        return None
+    match = re.search(r"(?:v=|\/embed\/|youtu\.be\/|\/v\/)([a-zA-Z0-9_-]{11})", url)
+    return match.group(1) if match else None
+
+
 def format_lesson_note(
     title: str,
     course_name: str,
@@ -25,6 +33,9 @@ def format_lesson_note(
     raw_transcription: str = "",
     links: Optional[List[dict[str, str]]] = None,
     additional_tags: Optional[List[str]] = None,
+    media_url: Optional[str] = None,
+    space_name: Optional[str] = None,
+    section_name: Optional[str] = None,
 ) -> str:
     """Format full markdown note according to Second Brain standards."""
     clean_course_tag = re.sub(r"[^a-zA-Z0-9_\-]", "", course_name.lower().replace(" ", "-"))
@@ -51,28 +62,62 @@ def format_lesson_note(
 
     web_link_md = f"[Acessar Aula na Web]({page_url})" if page_url else "Nenhum link web informado"
 
+    yt_id = _extract_youtube_id(media_url)
+    video_embed_section = ""
+    video_link_md = ""
+    if yt_id:
+        canonical_yt_url = media_url if "youtube.com" in media_url or "youtu.be" in media_url else f"https://www.youtube.com/watch?v={yt_id}"
+        video_link_md = f"[Assistir no YouTube ↗]({canonical_yt_url})"
+        video_embed_section = f"""## 📺 Vídeo da Aula
+<iframe width="100%" height="380" src="https://www.youtube.com/embed/{yt_id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+---
+
+"""
+    elif media_url and media_url.startswith("http"):
+        video_link_md = f"[Assistir Vídeo Online ↗]({media_url})"
+
+    extra_yaml = []
+    if space_name:
+        extra_yaml.append(f'parte: "{space_name}"')
+    if section_name:
+        extra_yaml.append(f'topico: "{section_name}"')
+    if media_url:
+        extra_yaml.append(f'video_url: "{media_url}"')
+    extra_yaml_str = ("\n" + "\n".join(extra_yaml)) if extra_yaml else ""
+
     frontmatter = f"""---
 tipo: aula
 curso: "{course_name}"
 aula: "{title}"
 plataforma: "{platform}"
 data_estudo: {today}
-url_origem: "{page_url}"
+url_origem: "{page_url}"{extra_yaml_str}
 arquivo_midia: "{local_media_str}"
 tags:
 {tags_yaml}
 status: concluido
 ---"""
 
+    header_items = [
+        f"> - **Curso:** [[{course_name}]]",
+    ]
+    if space_name:
+        header_items.append(f"> - **Parte:** {space_name}")
+    if section_name:
+        header_items.append(f"> - **Tópico:** {section_name}")
+    header_items.append(f"> - **Plataforma:** {web_link_md}")
+    if video_link_md:
+        header_items.append(f"> - **Vídeo:** {video_link_md}")
+    if local_media_path:
+        header_items.append(f"> - **Mídia Local:** {local_media_md}")
+
     header = f"""# {title}
 
 > [!INFO] Metadados da Aula
-> - **Curso:** [[{course_name}]]
-> - **Plataforma:** {web_link_md}
-> - **Mídia Local:** {local_media_md}
-"""
+""" + "\n".join(header_items) + "\n"
 
-    body = summary_content.strip()
+    body = (video_embed_section + summary_content.strip()).strip()
 
     links_section = ""
     if links:
@@ -214,3 +259,28 @@ def save_lesson_note(
     update_course_moc(course_dir, course_name)
 
     return note_path
+
+
+def list_vault_folders(vault_path: Path | str, max_depth: int = 2) -> list[str]:
+    """List available top-level and subfolder directories in the vault, ignoring system dirs."""
+    root = Path(vault_path).expanduser().resolve()
+    if not root.is_dir():
+        return []
+
+    ignored = {".obsidian", "_sistema", ".trash", ".git", "__pycache__"}
+    result: list[str] = []
+
+    def _scan(current: Path, depth: int):
+        if depth > max_depth:
+            return
+        try:
+            for child in sorted(current.iterdir(), key=lambda p: p.name.lower()):
+                if child.is_dir() and child.name not in ignored and not child.name.startswith("."):
+                    rel = str(child.relative_to(root))
+                    result.append(rel)
+                    _scan(child, depth + 1)
+        except Exception:
+            pass
+
+    _scan(root, 1)
+    return result

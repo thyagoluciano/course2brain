@@ -32,6 +32,44 @@ def test_format_lesson_note():
     assert "Transcrição de teste" in md
 
 
+def test_format_lesson_note_with_youtube_video():
+    md = format_lesson_note(
+        title="Claude 4.5 Model Family",
+        course_name="AI Engineering with Claude",
+        platform="Udacity",
+        summary_content="## 📌 Resumo Executivo\nVisão geral dos modelos Claude 4.5.",
+        page_url="https://learn.udacity.com/nd7426/lesson/1",
+        media_url="https://youtube.com/watch?v=FmjR7AdKfx8&rel=0&hl=pt-BR",
+        raw_transcription="You are building an AI app...",
+    )
+
+    assert 'video_url: "https://youtube.com/watch?v=FmjR7AdKfx8&rel=0&hl=pt-BR"' in md
+    assert "[Assistir no YouTube ↗](https://youtube.com/watch?v=FmjR7AdKfx8&rel=0&hl=pt-BR)" in md
+    assert "## 📺 Vídeo da Aula" in md
+    assert '<iframe width="100%" height="380" src="https://www.youtube.com/embed/FmjR7AdKfx8"' in md
+    assert 'curso: "AI Engineering with Claude"' in md
+    assert 'plataforma: "Udacity"' in md
+
+
+def test_format_lesson_note_with_topics_and_ordering():
+    md = format_lesson_note(
+        title="02. Prerequisites",
+        course_name="AI Engineering with Claude",
+        platform="Udacity",
+        summary_content="## 📌 Resumo Executivo\nPré-requisitos do curso.",
+        page_url="https://learn.udacity.com/nd7426/lesson/1",
+        space_name="01 - Harness Engineering with Claude and Claude Code",
+        section_name="01 - Introduction to Harness Engineering with Claude and Claude Code",
+        media_url="https://youtube.com/watch?v=FmjR7AdKfx8",
+    )
+
+    assert 'parte: "01 - Harness Engineering with Claude and Claude Code"' in md
+    assert 'topico: "01 - Introduction to Harness Engineering with Claude and Claude Code"' in md
+    assert "> - **Parte:** 01 - Harness Engineering with Claude and Claude Code" in md
+    assert "> - **Tópico:** 01 - Introduction to Harness Engineering with Claude and Claude Code" in md
+    assert "# 02. Prerequisites" in md
+
+
 def test_save_lesson_note_and_moc(tmp_path: Path):
     vault = tmp_path / "MyVault"
     note_path = save_lesson_note(

@@ -15,7 +15,7 @@ from c2b.interlink import interlink_note
 from c2b.plugins import run_post_save_hooks, run_pre_process_hooks
 from c2b.summarizer import summarize_lesson
 from c2b.transcription import clean_vtt
-from c2b.vault import format_lesson_note, save_lesson_note
+from c2b.vault import format_lesson_note, list_vault_folders, save_lesson_note
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,17 @@ def create_app(cfg: Optional[Config] = None) -> FastAPI:
             "interlink_enabled": active_cfg.interlink.enabled,
         }
 
+    @app.get("/api/vault/folders")
+    def get_vault_folders():
+        active_cfg: Config = app.state.config
+        folders = list_vault_folders(active_cfg.vault.path)
+        return {
+            "status": "ok",
+            "vault": str(active_cfg.vault.path),
+            "default_folder": active_cfg.vault.courses_folder,
+            "folders": folders,
+        }
+
     @app.post("/api/process", response_model=ProcessResponse)
     def process_lesson(req: LessonRequest):
         active_cfg: Config = app.state.config
@@ -125,6 +136,9 @@ def create_app(cfg: Optional[Config] = None) -> FastAPI:
             local_media_path=local_media_path,
             raw_transcription=cleaned_captions or notes_raw,
             links=links,
+            media_url=payload.get("media_url"),
+            space_name=space_name,
+            section_name=section_name,
         )
 
         # 5. Save note to Vault

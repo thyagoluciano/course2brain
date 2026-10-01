@@ -24,6 +24,7 @@ Instruções Estruturais:
 5. Recursos & Referências:
    - Se houver ferramentas, bibliotecas, repositórios ou artigos citados na aula ou notas, liste-os contextualizando seu uso.
 6. Tags sugeridas: Liste 3 a 5 tags temáticas no final (ex: #arquitetura, #decisao-tecnica, #design-patterns).
+7. Idioma & Localização: Todo o conteúdo estruturado gerado DEVE estar em Português do Brasil (PT-BR) claro, didático e de alto nível técnico. Se a aula, notas ou transcrição original estiverem em inglês ou outro idioma, traduza e sintetize integralmente para o Português do Brasil, preservando apenas termos e nomes técnicos padrão da indústria quando conveniente (ex: stop_reason, token budget, prompt caching, harness) sempre explicando seus conceitos em português.
 
 Não invente fatos que não estejam presentes na aula ou notas. Mantenha um tom profissional, didático e direto ao ponto. Use Markdown rico com listas, tabelas quando pertinente e negrito nos termos-chave.
 """
