@@ -32,6 +32,7 @@
         "extractors/base.js",
         "extractors/circle.js",
         "extractors/udacity.js",
+        "extractors/skilljar.js",
         "content.js"
       ],
       "run_at": "document_idle"

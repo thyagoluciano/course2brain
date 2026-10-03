@@ -15,7 +15,7 @@ from c2b.config import Config, load_config
 from c2b.interlink import interlink_note
 from c2b.plugins import run_post_save_hooks, run_pre_process_hooks
 from c2b.summarizer import summarize_lesson
-from c2b.transcription import clean_vtt
+from c2b.transcription import clean_vtt, fetch_youtube_transcript
 from c2b.vault import format_lesson_note, list_vault_folders, save_lesson_note
 
 logger = logging.getLogger("uvicorn.error")
@@ -125,8 +125,19 @@ def create_app(cfg: Optional[Config] = None) -> FastAPI:
         page_url = payload.get("page_url") or ""
         local_media_path = payload.get("local_media_path")
         links = payload.get("links") or []
+        media_url = payload.get("media_url")
 
-        # 2. Clean captions
+        # 2. YouTube transcript fallback if captions_text is empty or too short
+        if (not captions_raw or len(captions_raw.strip()) < 30) and media_url:
+            try:
+                yt_transcript = fetch_youtube_transcript(media_url)
+                if yt_transcript:
+                    captions_raw = yt_transcript
+                    logger.info("  [1.5/4] Transcrição do YouTube recuperada com sucesso (%d caracteres).", len(yt_transcript))
+            except Exception as e:
+                logger.debug("Falha ao buscar transcrição do YouTube: %s", e)
+
+        # 3. Clean captions
         cleaned_captions = clean_vtt(captions_raw) if "WEBVTT" in captions_raw else captions_raw
 
         # 3. Cognitive synthesis via configured LLM provider
