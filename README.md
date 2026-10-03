@@ -137,27 +137,79 @@ export C2B_VAULT_PATH="~/Obsidian/SecondBrain"
 
 - 👉 **[📖 Guia de Configuração do OpenRouter & Modelos Gratuitos](docs/OPENROUTER_GUIDE.md)**: Passo a passo para criar sua conta, obter sua chave gratuita e tabela com os melhores modelos recomendados (`google/gemma-4-31b-it:free`, `qwen/qwen3.8-27b:free`, `nvidia/nemotron-3-ultra-550b-a55b:free`, etc.).
 
-Example configuration in `c2b.toml`:
+---
 
+#### 💡 Exemplos Práticos de Configuração (`c2b.toml`)
+
+##### 1. Usando somente o Gemini para tudo (100% nativo)
 ```toml
+[gemini]
+# Deixe vazio para ler de GEMINI_API_KEY
+api_key = "AIza..."
+model = "gemini-3.8-flash"
+```
+
+##### 2. Usando o Gemini via OpenRouter para tudo
+```toml
+[ai]
+default_provider = "openrouter"
+
 [openrouter]
-api_key = "" # or leave empty and use OPENROUTER_API_KEY
+# Deixe vazio para ler de OPENROUTER_API_KEY
+api_key = "sk-or-v1-..."
+model = "google/gemini-2.5-flash"
+```
+
+##### 3. Usando um único modelo gratuito para tudo via OpenRouter
+```toml
+[ai]
+default_provider = "openrouter"
+
+[openrouter]
+api_key = "sk-or-v1-..."
+# Modelo gratuito do Google DeepMind (256k tokens, didático em PT-BR)
 model = "google/gemma-4-31b-it:free"
 rpm_limit = 15
+```
 
-[gemini]
-api_key = "" # or leave empty and use GEMINI_API_KEY
-model = "gemini-3.8-flash"
+##### 4. Usando dois modelos gratuitos diferentes via OpenRouter
+```toml
+[openrouter]
+api_key = "sk-or-v1-..."
+rpm_limit = 15
 
-# Optional granular task allocation
+# Síntese das notas com Gemma 4 (ótima redação didática e formatação Markdown)
 [ai.synthesis]
 provider = "openrouter"
 model = "google/gemma-4-31b-it:free"
 
+# Validação do grafo com Qwen 27B (alta precisão lógica e geração de JSON estrito)
 [ai.interlink]
 provider = "openrouter"
 model = "qwen/qwen3.8-27b:free"
 ```
+
+##### 5. Modelo gratuito para síntese + Gemini oficial para interlink
+```toml
+[openrouter]
+api_key = "sk-or-v1-..."
+rpm_limit = 15
+
+[gemini]
+api_key = "AIza..."
+
+# Síntese de aulas com modelo gratuito do OpenRouter (sem custos)
+[ai.synthesis]
+provider = "openrouter"
+model = "google/gemma-4-31b-it:free"
+
+# Validação de conexões do grafo com Gemini Flash oficial
+[ai.interlink]
+provider = "gemini"
+model = "gemini-3.8-flash"
+```
+
+---
 
 You can customize which vault folders participate in the semantic graph:
 
@@ -167,6 +219,7 @@ You can customize which vault folders participate in the semantic graph:
 include_folders = ["10-Cursos", "50-Conteudo", "20-Conceitos"]
 exclude_folders = [".obsidian", "_sistema", ".trash", "90-Templates", ".git"]
 ```
+
 
 
 ### 5. Install the Chrome Extension
