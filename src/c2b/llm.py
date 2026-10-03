@@ -130,7 +130,7 @@ class UnifiedLLMClient:
         model: str = "",
         base_url: str = "",
         rpm_limit: int = 15,
-        timeout: int = 90,
+        timeout: int = 180,
     ) -> None:
         self.provider = provider.lower().strip()
         self.api_key = api_key.strip()
