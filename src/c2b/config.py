@@ -5,6 +5,13 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from c2b.llm import (
+    DEFAULT_PROVIDER_ENV_VARS,
+    DEFAULT_PROVIDER_MODELS,
+    DEFAULT_PROVIDER_URLS,
+    UnifiedLLMClient,
+)
+
 
 @dataclass
 class VaultConfig:
@@ -17,6 +24,29 @@ class VaultConfig:
 class GeminiConfig:
     api_key: str = ""
     model: str = "gemini-3.8-flash"
+
+
+@dataclass
+class OpenRouterConfig:
+    api_key: str = ""
+    model: str = "google/gemma-4-31b-it:free"
+    rpm_limit: int = 15
+
+
+@dataclass
+class TaskAIConfig:
+    provider: str = ""
+    model: str = ""
+    api_key: str = ""
+    base_url: str = ""
+    rpm_limit: int | None = None
+
+
+@dataclass
+class AIConfig:
+    default_provider: str = "gemini"
+    synthesis: TaskAIConfig = field(default_factory=TaskAIConfig)
+    interlink: TaskAIConfig = field(default_factory=TaskAIConfig)
 
 
 DEFAULT_EXCLUDE_FOLDERS: list[str] = [
@@ -49,8 +79,64 @@ class ServerConfig:
 class Config:
     vault: VaultConfig = field(default_factory=VaultConfig)
     gemini: GeminiConfig = field(default_factory=GeminiConfig)
+    openrouter: OpenRouterConfig = field(default_factory=OpenRouterConfig)
+    ai: AIConfig = field(default_factory=AIConfig)
     interlink: InterlinkConfig = field(default_factory=InterlinkConfig)
     server: ServerConfig = field(default_factory=ServerConfig)
+
+    def get_llm_client_for_task(self, task_name: str) -> UnifiedLLMClient:
+        """Resolve appropriate LLM client for a specific task ('synthesis' or 'interlink')."""
+        task_cfg = self.ai.synthesis if task_name == "synthesis" else self.ai.interlink
+
+        # 1. Determine provider
+        provider = (
+            task_cfg.provider.lower().strip()
+            if task_cfg.provider
+            else self.ai.default_provider.lower().strip()
+        )
+
+        # 2. Determine API key
+        api_key = task_cfg.api_key.strip()
+        if not api_key:
+            if provider == "openrouter":
+                api_key = self.openrouter.api_key
+            elif provider == "gemini":
+                api_key = self.gemini.api_key
+            else:
+                env_var = DEFAULT_PROVIDER_ENV_VARS.get(provider, "")
+                if env_var:
+                    api_key = os.getenv(env_var, "")
+
+        # 3. Determine Model
+        model = task_cfg.model.strip()
+        if not model:
+            if provider == "openrouter":
+                model = self.openrouter.model
+            elif provider == "gemini":
+                model = self.gemini.model
+            else:
+                model = DEFAULT_PROVIDER_MODELS.get(provider, "")
+
+        # 4. Determine RPM limit
+        rpm_limit = task_cfg.rpm_limit
+        if rpm_limit is None:
+            if provider == "openrouter":
+                rpm_limit = self.openrouter.rpm_limit
+            elif provider == "gemini":
+                rpm_limit = 0
+            else:
+                rpm_limit = 0
+
+        # 5. Base URL
+        base_url = task_cfg.base_url.strip() or DEFAULT_PROVIDER_URLS.get(provider, "")
+
+        return UnifiedLLMClient(
+            provider=provider,
+            api_key=api_key,
+            model=model,
+            base_url=base_url,
+            rpm_limit=rpm_limit,
+        )
 
 
 def find_config_file(explicit_path: Path | str | None = None) -> Path | None:
@@ -105,6 +191,53 @@ def load_config(config_path: Path | str | None = None) -> Config:
         model=gemini_model,
     )
 
+    # OpenRouter
+    o_data = data.get("openrouter", {})
+    openrouter_key = os.getenv("OPENROUTER_API_KEY") or o_data.get("api_key", "")
+    openrouter_model = os.getenv("OPENROUTER_MODEL") or o_data.get(
+        "model", "google/gemma-4-31b-it:free"
+    )
+    openrouter_rpm = int(o_data.get("rpm_limit", 15))
+    openrouter = OpenRouterConfig(
+        api_key=openrouter_key,
+        model=openrouter_model,
+        rpm_limit=openrouter_rpm,
+    )
+
+    # Unified AI / Tasks
+    ai_data = data.get("ai", {})
+    # Default provider: explicit config -> env -> openrouter if key present and no gemini key -> gemini
+    default_provider = os.getenv("C2B_AI_PROVIDER") or ai_data.get("default_provider", "")
+    if not default_provider:
+        if openrouter_key and not gemini_key:
+            default_provider = "openrouter"
+        else:
+            default_provider = "gemini"
+
+    synth_data = ai_data.get("synthesis", {})
+    synthesis = TaskAIConfig(
+        provider=synth_data.get("provider", ""),
+        model=synth_data.get("model", ""),
+        api_key=synth_data.get("api_key", ""),
+        base_url=synth_data.get("base_url", ""),
+        rpm_limit=int(synth_data["rpm_limit"]) if "rpm_limit" in synth_data else None,
+    )
+
+    inter_data = ai_data.get("interlink", {})
+    interlink_task = TaskAIConfig(
+        provider=inter_data.get("provider", ""),
+        model=inter_data.get("model", ""),
+        api_key=inter_data.get("api_key", ""),
+        base_url=inter_data.get("base_url", ""),
+        rpm_limit=int(inter_data["rpm_limit"]) if "rpm_limit" in inter_data else None,
+    )
+
+    ai = AIConfig(
+        default_provider=default_provider,
+        synthesis=synthesis,
+        interlink=interlink_task,
+    )
+
     # Interlink
     i_data = data.get("interlink", {})
     raw_db_path = i_data.get("db_path")
@@ -152,6 +285,8 @@ def load_config(config_path: Path | str | None = None) -> Config:
     return Config(
         vault=vault,
         gemini=gemini,
+        openrouter=openrouter,
+        ai=ai,
         interlink=interlink,
         server=server,
     )

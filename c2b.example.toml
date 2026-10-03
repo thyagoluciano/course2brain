@@ -7,10 +7,41 @@ path = "~/Obsidian/SecondBrain"
 courses_folder = "10-Cursos"
 concepts_folder = "20-Conceitos"
 
+# ═════════════════════════════════════════════════════════════════════════════
+# PROVEDORES DE IA (Escolha um ou configure ambos)
+# ═════════════════════════════════════════════════════════════════════════════
+
+[openrouter]
+# Chave da API OpenRouter (ou deixe vazio para ler da variável OPENROUTER_API_KEY)
+# Veja o guia em docs/OPENROUTER_GUIDE.md para criar conta e obter sua chave gratuita.
+api_key = ""
+# Modelo padrão recomendado: 'google/gemma-4-31b-it:free' ou 'openrouter/free'
+model = "google/gemma-4-31b-it:free"
+# Limite de requisições por minuto para modelos gratuitos (padrão seguro: 15)
+rpm_limit = 15
+
 [gemini]
-# Leave empty to read from the GEMINI_API_KEY environment variable
+# Chave da API Google Gemini (ou deixe vazio para ler da variável GEMINI_API_KEY)
 api_key = ""
 model = "gemini-3.8-flash"
+
+# ═════════════════════════════════════════════════════════════════════════════
+# CONFIGURAÇÃO DINÂMICA DE TAREFAS (Opcional)
+# ═════════════════════════════════════════════════════════════════════════════
+# Se omitido, o sistema usará o provedor configurado acima (ou gemini por padrão).
+[ai]
+# Provedor global padrão: "openrouter", "gemini", "openai", "grok", "ollama"
+default_provider = "openrouter"
+
+[ai.synthesis]
+# Provedor e modelo específicos para sintetizar notas de aula
+provider = "openrouter"
+model = "google/gemma-4-31b-it:free"
+
+[ai.interlink]
+# Provedor e modelo específicos para validação semântica de conexões
+provider = "openrouter"
+model = "qwen/qwen3.8-27b:free"
 
 [interlink]
 # Automatically discover and inject semantic links into Obsidian Graph View

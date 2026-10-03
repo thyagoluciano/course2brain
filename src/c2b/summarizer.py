@@ -1,11 +1,13 @@
-"""Module for knowledge synthesis using Google Gemini (SDK or direct REST API)."""
+"""Module for knowledge synthesis using universal LLM providers (OpenRouter, Gemini, OpenAI, etc.)."""
 
 from __future__ import annotations
 
-import json
-import urllib.error
-import urllib.request
-from typing import Any
+import logging
+
+from c2b.llm import UnifiedLLMClient
+
+logger = logging.getLogger(__name__)
+
 
 SECOND_BRAIN_SYSTEM_PROMPT = """Você é um especialista em síntese de conhecimento e aprendizagem acelerada (metodologia Second Brain / Zettelkasten).
 
@@ -31,19 +33,17 @@ Não invente fatos que não estejam presentes na aula ou notas. Mantenha um tom 
 
 
 def summarize_lesson(
-    api_key: str,
-    title: str,
-    course_name: str,
-    notes_page: str,
-    transcription: str,
-    model: str = "gemini-3.8-flash",
+    api_key: str = "",
+    title: str = "",
+    course_name: str = "",
+    notes_page: str = "",
+    transcription: str = "",
+    model: str = "",
+    *,
+    client: UnifiedLLMClient | None = None,
+    provider: str = "gemini",
 ) -> str:
-    """Send lesson content to Gemini API and return structured Second Brain Markdown."""
-    if not api_key:
-        raise ValueError(
-            "Chave de API do Gemini não configurada! Defina em c2b.toml ou na variável de ambiente GEMINI_API_KEY."
-        )
-
+    """Send lesson content to configured LLM provider and return structured Second Brain Markdown."""
     content_bundle = f"""
 CURSO: {course_name}
 TÍTULO DA AULA: {title}
@@ -53,46 +53,44 @@ TÍTULO DA AULA: {title}
 
 --- TRANSCRIÇÃO / FALA DO INSTRUTOR ---
 {transcription or "Nenhuma transcrição de áudio fornecida."}
-"""
+""".strip()
 
-    # Try official google.genai SDK
-    try:
-        from google import genai
-
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model=model,
-            contents=[SECOND_BRAIN_SYSTEM_PROMPT, content_bundle],
-        )
-        return response.text
-    except ImportError:
-        # Fallback to direct Gemini REST API
-        endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        payload: dict[str, Any] = {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": SECOND_BRAIN_SYSTEM_PROMPT},
-                        {"text": content_bundle},
-                    ]
-                }
-            ],
-            "generationConfig": {
-                "temperature": 0.4,
-            },
-        }
-
-        req = urllib.request.Request(
-            endpoint,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
+    # 1. Use explicit client if provided
+    if client is not None:
+        return client.generate_text(
+            prompt=content_bundle,
+            system_prompt=SECOND_BRAIN_SYSTEM_PROMPT,
+            temperature=0.4,
         )
 
+    # 2. Try official google.genai SDK if provider is gemini and key exists
+    if provider == "gemini" and api_key:
         try:
-            with urllib.request.urlopen(req, timeout=90) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                return data["candidates"][0]["content"]["parts"][0]["text"]
-        except urllib.error.HTTPError as e:
-            err_body = e.read().decode("utf-8", errors="ignore")
-            raise RuntimeError(f"Erro na API do Gemini (HTTP {e.code}): {err_body}") from e
+            from google import genai
+
+            sdk_client = genai.Client(api_key=api_key)
+            response = sdk_client.models.generate_content(
+                model=model or "gemini-3.8-flash",
+                contents=[SECOND_BRAIN_SYSTEM_PROMPT, content_bundle],
+            )
+            return response.text
+        except ImportError:
+            pass
+
+    # 3. Fallback to UnifiedLLMClient
+    if not api_key:
+        raise ValueError(
+            "Chave de API de IA não configurada! Defina em c2b.toml ou na variável de ambiente correspondente (ex: OPENROUTER_API_KEY ou GEMINI_API_KEY)."
+        )
+
+    resolved_model = model or ("google/gemma-4-31b-it:free" if provider == "openrouter" else "gemini-3.8-flash")
+    llm = UnifiedLLMClient(
+        provider=provider,
+        api_key=api_key,
+        model=resolved_model,
+    )
+    return llm.generate_text(
+        prompt=content_bundle,
+        system_prompt=SECOND_BRAIN_SYSTEM_PROMPT,
+        temperature=0.4,
+    )

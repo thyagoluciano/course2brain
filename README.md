@@ -18,7 +18,8 @@ Online courses and learning communities (Circle.so, Skool, Hotmart, etc.) contai
 - ⚡ **Modular Browser Extension (Manifest V3)**: Minimalist Chrome popup that detects learning platforms and extracts titles, captions, rich notes, and reference links.
 - 🔌 **Pluggable Extractor Strategy**: Clean `BaseExtractor` interface making it trivial to add support for any learning platform (`Circle.so`, `Skool`, `Coursera`, etc.).
 - 🏗️ **Instant Vault Scaffolder (`c2b init-vault`)**: Bootstraps an Obsidian Second Brain in seconds with study folders (`00-Inbox/`, `10-Cursos/`, `20-Conceitos/`), note templates, and pre-calibrated Graph View colors.
-- 🤖 **Deep Cognitive Synthesis**: Generates high-density study notes (Executive Summary, Core Concepts with Trade-offs, Practical Engineering Checklists, Active Recall questions) using Gemini 3.8 Flash.
+- 🤖 **Universal Cognitive Synthesis**: Generates high-density study notes (Executive Summary, Core Concepts with Trade-offs, Practical Engineering Checklists, Active Recall questions) using OpenRouter (with 100% free models like Gemma 4 and Qwen), Google Gemini, OpenAI, Grok, or local Ollama.
+
 - 🕸️ **Flexible Vault Indexing & Auto-Interlink**: Discovers conceptually related notes across courses, articles (`50-Conteudo/`), concepts (`20-Conceitos/`), or the entire vault (`["*"]`). Uses vector search (`sqlite-vec`) and AI validation to inject bidirectional wikilinks into `## 🔗 Conexões Relacionadas`.
 - 🛡️ **Zero-ToS-Risk & Local Plugin System**: Public codebase has zero video scraping or DRM bypass routines. Private plugins (e.g., local video downloaders for external drives) live safely in the gitignored `plugins/` directory.
 
@@ -120,8 +121,42 @@ cp c2b.example.toml c2b.toml
 Edit `c2b.toml` or set your environment variables:
 
 ```bash
+# Option 1: OpenRouter (supports free models like Gemma 4 and Qwen)
+export OPENROUTER_API_KEY="sk-or-v1-..."
+export C2B_AI_PROVIDER="openrouter"
+
+# Option 2: Google Gemini
 export GEMINI_API_KEY="your-gemini-api-key"
+
 export C2B_VAULT_PATH="~/Obsidian/SecondBrain"
+```
+
+#### 🤖 AI Providers & Free Models (OpenRouter, Gemini, Ollama)
+
+**course2brain** is provider-agnostic. You can use **Google Gemini**, **OpenRouter** (accessing hundreds of models with a single key, including free tier models), **OpenAI**, **Grok**, or even 100% local models via **Ollama**:
+
+- 👉 **[📖 Guia de Configuração do OpenRouter & Modelos Gratuitos](docs/OPENROUTER_GUIDE.md)**: Passo a passo para criar sua conta, obter sua chave gratuita e tabela com os melhores modelos recomendados (`google/gemma-4-31b-it:free`, `qwen/qwen3.8-27b:free`, `nvidia/nemotron-3-ultra-550b-a55b:free`, etc.).
+
+Example configuration in `c2b.toml`:
+
+```toml
+[openrouter]
+api_key = "" # or leave empty and use OPENROUTER_API_KEY
+model = "google/gemma-4-31b-it:free"
+rpm_limit = 15
+
+[gemini]
+api_key = "" # or leave empty and use GEMINI_API_KEY
+model = "gemini-3.8-flash"
+
+# Optional granular task allocation
+[ai.synthesis]
+provider = "openrouter"
+model = "google/gemma-4-31b-it:free"
+
+[ai.interlink]
+provider = "openrouter"
+model = "qwen/qwen3.8-27b:free"
 ```
 
 You can customize which vault folders participate in the semantic graph:
@@ -132,6 +167,7 @@ You can customize which vault folders participate in the semantic graph:
 include_folders = ["10-Cursos", "50-Conteudo", "20-Conceitos"]
 exclude_folders = [".obsidian", "_sistema", ".trash", "90-Templates", ".git"]
 ```
+
 
 ### 5. Install the Chrome Extension
 

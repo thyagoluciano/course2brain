@@ -3,18 +3,23 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 import os
 import re
 import sqlite3
 import struct
 import time
-import urllib.request
 from pathlib import Path
 from typing import Any, List, Tuple
 
 from c2b.config import Config
 from c2b.injector import apply_connections_to_file
+from c2b.llm import UnifiedLLMClient
+
+logger = logging.getLogger(__name__)
+
+
 
 _MODEL = None
 
@@ -305,12 +310,14 @@ def validate_connections_with_llm(
     source_title: str,
     source_summary: str,
     candidates: List[dict[str, Any]],
+    *,
+    client: UnifiedLLMClient | None = None,
 ) -> List[dict[str, Any]]:
-    """Validate candidates using Gemini to ensure high conceptual relevance."""
+    """Validate candidates using configured LLM to ensure high conceptual relevance."""
     if not candidates:
         return []
 
-    if not api_key:
+    if client is None and not api_key:
         # If no API key configured, accept candidates that exceed high similarity threshold
         return [
             {
@@ -334,25 +341,26 @@ def validate_connections_with_llm(
         f"{VALIDATION_PROMPT}\n\nDADOS PARA ANÁLISE:\n{json.dumps(prompt_data, ensure_ascii=False)}"
     )
 
-    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-    payload = {
-        "contents": [{"parts": [{"text": user_message}]}],
-        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
-    }
-
-    req = urllib.request.Request(
-        endpoint,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
+    if client is None:
+        client = UnifiedLLMClient(
+            provider="gemini",
+            api_key=api_key,
+            model=model or "gemini-3.8-flash",
+        )
 
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-            return json.loads(raw_text)
-    except Exception:
+        data = client.generate_json(
+            prompt=user_message,
+            system_prompt=VALIDATION_PROMPT,
+            temperature=0.2,
+        )
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict) and "candidatos" in data and isinstance(data["candidatos"], list):
+            return data["candidatos"]
+        return list(data) if isinstance(data, (list, tuple)) else []
+    except Exception as e:
+        logger.warning("Falha na validação com LLM (%s), usando fallback de similaridade.", e)
         # Fallback to high-similarity candidates on network or API error
         return [
             {
@@ -407,13 +415,16 @@ def interlink_note(
         }
 
     # 3. Validate via LLM
+    llm_client = cfg.get_llm_client_for_task("interlink")
     validations = validate_connections_with_llm(
-        api_key=cfg.gemini.api_key,
-        model=cfg.gemini.model,
+        api_key=llm_client.api_key,
+        model=llm_client.model,
         source_title=title,
         source_summary=summary,
         candidates=candidates,
+        client=llm_client,
     )
+
 
     val_map = {v.get("titulo"): v for v in validations if v.get("relevante")}
     applied_connections = []

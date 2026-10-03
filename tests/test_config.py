@@ -89,3 +89,59 @@ def test_interlink_folders_defaults_fallback(tmp_path: Path):
     assert cfg.interlink.include_folders == ["CustomCourses"]
     assert ".obsidian" in cfg.interlink.exclude_folders
     assert "_sistema" in cfg.interlink.exclude_folders
+
+
+def test_openrouter_and_task_ai_config(tmp_path: Path):
+    toml_content = """
+    [openrouter]
+    api_key = "sk-or-test-123"
+    model = "google/gemma-4-31b-it:free"
+    rpm_limit = 20
+
+    [ai]
+    default_provider = "openrouter"
+
+    [ai.synthesis]
+    provider = "openrouter"
+    model = "google/gemma-4-31b-it:free"
+
+    [ai.interlink]
+    provider = "openrouter"
+    model = "qwen/qwen3.8-27b:free"
+    """
+    cfg_file = tmp_path / "c2b.toml"
+    cfg_file.write_text(toml_content, encoding="utf-8")
+
+    cfg = load_config(cfg_file)
+    assert cfg.openrouter.api_key == "sk-or-test-123"
+    assert cfg.openrouter.model == "google/gemma-4-31b-it:free"
+    assert cfg.openrouter.rpm_limit == 20
+    assert cfg.ai.default_provider == "openrouter"
+
+    synth_client = cfg.get_llm_client_for_task("synthesis")
+    assert synth_client.provider == "openrouter"
+    assert synth_client.model == "google/gemma-4-31b-it:free"
+    assert synth_client.api_key == "sk-or-test-123"
+    assert synth_client.rate_limiter.rpm == 20
+
+    interlink_client = cfg.get_llm_client_for_task("interlink")
+    assert interlink_client.provider == "openrouter"
+    assert interlink_client.model == "qwen/qwen3.8-27b:free"
+    assert interlink_client.api_key == "sk-or-test-123"
+
+
+def test_task_ai_fallback_to_gemini(tmp_path: Path):
+    toml_content = """
+    [gemini]
+    api_key = "gemini-fallback-key"
+    model = "gemini-2.5-flash"
+    """
+    cfg_file = tmp_path / "c2b.toml"
+    cfg_file.write_text(toml_content, encoding="utf-8")
+
+    cfg = load_config(cfg_file)
+    synth_client = cfg.get_llm_client_for_task("synthesis")
+    assert synth_client.provider == "gemini"
+    assert synth_client.model == "gemini-2.5-flash"
+    assert synth_client.api_key == "gemini-fallback-key"
+

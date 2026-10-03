@@ -53,14 +53,24 @@ def status(
         "Existe no Disco?", "[green]Sim[/green]" if cfg.vault.path.exists() else "[red]Não[/red]"
     )
     table.add_row("Pasta de Cursos", cfg.vault.courses_folder)
-    table.add_row("Pasta de Conceitos", cfg.vault.concepts_folder)
-    table.add_row("Modelo Gemini", cfg.gemini.model)
+    synth_llm = cfg.get_llm_client_for_task("synthesis")
+    inter_llm = cfg.get_llm_client_for_task("interlink")
+
+    table.add_row("Síntese de Aulas", f"[{synth_llm.provider.upper()}] {synth_llm.model}")
     table.add_row(
-        "API Key Configurada?",
+        "Chave IA Síntese?",
         "[green]Sim[/green]"
-        if bool(cfg.gemini.api_key)
-        else "[yellow]Não (defina GEMINI_API_KEY)[/yellow]",
+        if bool(synth_llm.api_key) or synth_llm.provider == "ollama"
+        else "[yellow]Não configurada[/yellow]",
     )
+    table.add_row("Validação Interlink", f"[{inter_llm.provider.upper()}] {inter_llm.model}")
+    table.add_row(
+        "Chave IA Interlink?",
+        "[green]Sim[/green]"
+        if bool(inter_llm.api_key) or inter_llm.provider == "ollama"
+        else "[yellow]Não configurada[/yellow]",
+    )
+
     table.add_row(
         "Auto-Interlink Ativo?",
         "[green]Sim[/green]" if cfg.interlink.enabled else "[yellow]Não[/yellow]",
@@ -70,6 +80,7 @@ def status(
     table.add_row("Plugins Detectados", f"{len(plugins)} módulos ativos")
 
     console.print(table)
+
 
     if plugin_dirs:
         console.print(
@@ -121,13 +132,18 @@ def serve(
     listen_host = host or cfg.server.host
     listen_port = port or cfg.server.port
 
+    synth_llm = cfg.get_llm_client_for_task("synthesis")
+    inter_llm = cfg.get_llm_client_for_task("interlink")
+
     banner = f"""[bold cyan]course2brain local server[/bold cyan] [dim]v{__version__}[/dim]
 Escutando em: [green]http://{listen_host}:{listen_port}[/green]
 Vault Obsidian: [yellow]{cfg.vault.path}[/yellow]
-Modelo Gemini: [magenta]{cfg.gemini.model}[/magenta]
+Síntese de Aulas: [magenta][{synth_llm.provider.upper()}] {synth_llm.model}[/magenta]
+Validação Interlink: [magenta][{inter_llm.provider.upper()}] {inter_llm.model}[/magenta]
 Auto-Interlink: {"[green]Ativado[/green]" if cfg.interlink.enabled else "[yellow]Desativado[/yellow]"}"""
 
     console.print(Panel(banner, border_style="cyan"))
+
 
     app_instance = create_app(cfg)
     uvicorn.run(app_instance, host=listen_host, port=listen_port, log_level="info")

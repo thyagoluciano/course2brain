@@ -69,11 +69,17 @@ def create_app(cfg: Optional[Config] = None) -> FastAPI:
     @app.get("/api/status")
     def health_check():
         active_cfg: Config = app.state.config
+        synth_client = active_cfg.get_llm_client_for_task("synthesis")
+        inter_client = active_cfg.get_llm_client_for_task("interlink")
         return {
             "status": "online",
             "version": __version__,
             "vault": str(active_cfg.vault.path),
-            "gemini_model": active_cfg.gemini.model,
+            "gemini_model": synth_client.model if synth_client.provider == "gemini" else active_cfg.gemini.model,
+            "ai_synthesis_provider": synth_client.provider,
+            "ai_synthesis_model": synth_client.model,
+            "ai_interlink_provider": inter_client.provider,
+            "ai_interlink_model": inter_client.model,
             "interlink_enabled": active_cfg.interlink.enabled,
         }
 
@@ -112,19 +118,20 @@ def create_app(cfg: Optional[Config] = None) -> FastAPI:
         # 2. Clean captions
         cleaned_captions = clean_vtt(captions_raw) if "WEBVTT" in captions_raw else captions_raw
 
-        # 3. Cognitive synthesis via Gemini
+        # 3. Cognitive synthesis via configured LLM provider
         try:
+            synth_client = active_cfg.get_llm_client_for_task("synthesis")
             summary = summarize_lesson(
-                api_key=active_cfg.gemini.api_key,
                 title=title,
                 course_name=course_name,
                 notes_page=notes_raw,
                 transcription=cleaned_captions,
-                model=active_cfg.gemini.model,
+                client=synth_client,
             )
         except Exception as e:
-            logger.error("Gemini synthesis error: %s", e)
-            raise HTTPException(status_code=500, detail=f"Erro na síntese com Gemini: {e}") from e
+            logger.error("LLM synthesis error: %s", e)
+            raise HTTPException(status_code=500, detail=f"Erro na síntese de conhecimento: {e}") from e
+
 
         # 4. Format Second Brain note
         formatted_md = format_lesson_note(
