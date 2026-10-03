@@ -125,7 +125,8 @@ status: concluido
         + "\n"
     )
 
-    body = (video_embed_section + summary_content.strip()).strip()
+    safe_summary = (summary_content or "").strip()
+    body = (video_embed_section + safe_summary).strip()
 
     links_section = ""
     if links:
@@ -141,14 +142,15 @@ status: concluido
             )
 
     transcription_section = ""
-    if raw_transcription.strip():
+    raw_clean = (raw_transcription or "").strip()
+    if raw_clean:
         transcription_section = f"""
 ---
 ## 📝 Transcrição & Notas Brutas
 <details>
 <summary>Clique para expandir a transcrição completa da aula</summary>
 
-{raw_transcription.strip()}
+{raw_clean}
 
 </details>
 """

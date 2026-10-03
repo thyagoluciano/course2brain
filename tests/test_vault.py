@@ -141,3 +141,18 @@ def test_resolve_existing_dir_case_insensitive(tmp_path: Path):
 
     assert "Tech Leads club/IA First Dev" in str(note_path)
     assert note_path.exists()
+
+
+def test_format_lesson_note_with_none_summary():
+    # Should not raise AttributeError when summary_content is None
+    md = format_lesson_note(
+        title="Aula Teste",
+        course_name="Curso Teste",
+        platform="generic",
+        summary_content=None,
+        raw_transcription=None,
+    )
+    assert "# Aula Teste" in md
+    assert "Curso Teste" in md
+
+

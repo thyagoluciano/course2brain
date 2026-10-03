@@ -131,11 +131,14 @@ class UnifiedLLMClient:
         base_url: str = "",
         rpm_limit: int = 15,
         timeout: int = 180,
+        max_tokens: int | None = None,
     ) -> None:
         self.provider = provider.lower().strip()
         self.api_key = api_key.strip()
         self.model = model.strip() or DEFAULT_PROVIDER_MODELS.get(self.provider, "gemini-3.8-flash")
         self.timeout = timeout
+        self.max_tokens = max_tokens or (8192 if self.provider == "openrouter" else None)
+
 
         resolved_base_url = base_url.strip() or DEFAULT_PROVIDER_URLS.get(
             self.provider, DEFAULT_PROVIDER_URLS["gemini"]
@@ -250,13 +253,38 @@ class UnifiedLLMClient:
             "messages": messages,
             "temperature": temperature,
         }
+        if self.max_tokens is not None:
+            payload["max_tokens"] = self.max_tokens
 
         resp = self._post(payload)
         try:
-            return resp["choices"][0]["message"]["content"]
+            choice = resp["choices"][0]
+            msg = choice.get("message", {})
+            content = msg.get("content")
+            if content is None or not content.strip():
+                # Handle reasoning models or token exhaustion
+                reasoning = (msg.get("reasoning") or msg.get("reasoning_content") or "").strip()
+                finish_reason = choice.get("finish_reason")
+                if finish_reason == "length":
+                    if reasoning:
+                        logger.warning(
+                            "[%s] Modelo esgotou limite de tokens durante raciocínio (finish_reason: length). "
+                            "Recuperando texto do raciocínio.",
+                            self.provider.upper(),
+                        )
+                        return reasoning
+                    raise LLMError(
+                        f"[{self.provider.upper()}] Modelo esgotou limite de tokens (finish_reason: length) "
+                        f"sem emitir resposta. Aumente max_tokens ou use modelo de instrução direta.",
+                        provider=self.provider,
+                    )
+                if reasoning:
+                    return reasoning
+                return ""
+            return content
         except (KeyError, IndexError) as err:
             raise LLMError(
-                f"[{self.provider.upper()}] Resposta inesperada da API: chave 'choices[0].message.content' não encontrada.",
+                f"[{self.provider.upper()}] Resposta inesperada da API: chave 'choices[0].message' não encontrada.",
                 provider=self.provider,
             ) from err
 
@@ -280,10 +308,16 @@ class UnifiedLLMClient:
             "messages": messages,
             "temperature": temperature,
         }
+        if self.max_tokens is not None:
+            payload["max_tokens"] = self.max_tokens
 
         resp = self._post(payload)
         try:
-            raw_text = resp["choices"][0]["message"]["content"]
+            choice = resp["choices"][0]
+            msg = choice.get("message", {})
+            raw_text = msg.get("content")
+            if raw_text is None or not raw_text.strip():
+                raw_text = msg.get("reasoning") or msg.get("reasoning_content") or ""
         except (KeyError, IndexError) as err:
             raise LLMError(
                 f"[{self.provider.upper()}] Resposta inesperada da API: choices não encontrado.",

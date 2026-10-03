@@ -145,6 +145,10 @@ def create_app(cfg: Optional[Config] = None) -> FastAPI:
                 transcription=cleaned_captions,
                 client=synth_client,
             )
+            if not summary or not summary.strip():
+                raise ValueError(
+                    f"O provedor [{synth_client.provider.upper()}] e modelo {synth_client.model} retornaram resposta vazia."
+                )
             elapsed_synth = time.time() - t_synth
             logger.info(
                 "  [2/4] Síntese concluída em %.1fs (%d caracteres gerados).",

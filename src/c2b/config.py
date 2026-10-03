@@ -31,6 +31,7 @@ class OpenRouterConfig:
     api_key: str = ""
     model: str = "google/gemma-4-31b-it:free"
     rpm_limit: int = 15
+    max_tokens: int = 8192
 
 
 @dataclass
@@ -47,6 +48,7 @@ class TaskAIConfig:
     api_key: str = ""
     base_url: str = ""
     rpm_limit: int | None = None
+    max_tokens: int | None = None
 
 
 @dataclass
@@ -143,13 +145,20 @@ class Config:
         # 5. Base URL
         base_url = task_cfg.base_url.strip() or DEFAULT_PROVIDER_URLS.get(provider, "")
 
+        # 6. Max tokens
+        max_tokens = task_cfg.max_tokens
+        if max_tokens is None and provider == "openrouter":
+            max_tokens = self.openrouter.max_tokens
+
         return UnifiedLLMClient(
             provider=provider,
             api_key=api_key,
             model=model,
             base_url=base_url,
             rpm_limit=rpm_limit,
+            max_tokens=max_tokens,
         )
+
 
 
 def find_config_file(explicit_path: Path | str | None = None) -> Path | None:
@@ -211,10 +220,12 @@ def load_config(config_path: Path | str | None = None) -> Config:
         "model", "google/gemma-4-31b-it:free"
     )
     openrouter_rpm = int(o_data.get("rpm_limit", 15))
+    openrouter_max_tokens = int(o_data.get("max_tokens", 8192))
     openrouter = OpenRouterConfig(
         api_key=openrouter_key,
         model=openrouter_model,
         rpm_limit=openrouter_rpm,
+        max_tokens=openrouter_max_tokens,
     )
 
     # OpenAI
@@ -238,7 +249,6 @@ def load_config(config_path: Path | str | None = None) -> Config:
         else:
             default_provider = "gemini"
 
-
     synth_data = ai_data.get("synthesis", {})
     synthesis = TaskAIConfig(
         provider=synth_data.get("provider", ""),
@@ -246,6 +256,7 @@ def load_config(config_path: Path | str | None = None) -> Config:
         api_key=synth_data.get("api_key", ""),
         base_url=synth_data.get("base_url", ""),
         rpm_limit=int(synth_data["rpm_limit"]) if "rpm_limit" in synth_data else None,
+        max_tokens=int(synth_data["max_tokens"]) if "max_tokens" in synth_data else None,
     )
 
     inter_data = ai_data.get("interlink", {})
@@ -255,6 +266,7 @@ def load_config(config_path: Path | str | None = None) -> Config:
         api_key=inter_data.get("api_key", ""),
         base_url=inter_data.get("base_url", ""),
         rpm_limit=int(inter_data["rpm_limit"]) if "rpm_limit" in inter_data else None,
+        max_tokens=int(inter_data["max_tokens"]) if "max_tokens" in inter_data else None,
     )
 
     ai = AIConfig(

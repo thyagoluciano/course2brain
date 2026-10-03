@@ -192,3 +192,49 @@ def test_unified_client_server_error():
         assert "HTTP 503" in str(exc_info.value)
         assert "openrouter/free" in str(exc_info.value)
 
+
+def test_unified_client_reasoning_fallback_when_content_null():
+    client = UnifiedLLMClient(provider="openrouter", api_key="test-key", rpm_limit=0)
+
+    mock_resp_payload = {
+        "choices": [
+            {
+                "finish_reason": "length",
+                "message": {
+                    "role": "assistant",
+                    "content": None,
+                    "reasoning": "Resumo completo recuperado do raciocínio.",
+                },
+            }
+        ]
+    }
+
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(mock_resp_payload).encode("utf-8")
+    mock_resp.__enter__.return_value = mock_resp
+
+    with patch("urllib.request.urlopen", return_value=mock_resp):
+        res = client.generate_text("Teste reasoning")
+        assert res == "Resumo completo recuperado do raciocínio."
+
+
+def test_unified_client_max_tokens_in_payload():
+    client = UnifiedLLMClient(provider="openrouter", api_key="test-key", max_tokens=4096, rpm_limit=0)
+
+    captured_payload = {}
+
+    def mock_urlopen(req, timeout=None):
+        nonlocal captured_payload
+        captured_payload = json.loads(req.data.decode("utf-8"))
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps(
+            {"choices": [{"message": {"role": "assistant", "content": "Ok"}}]}
+        ).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        return mock_resp
+
+    with patch("urllib.request.urlopen", side_effect=mock_urlopen):
+        client.generate_text("Prompt teste")
+        assert captured_payload.get("max_tokens") == 4096
+
+
