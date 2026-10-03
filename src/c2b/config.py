@@ -34,6 +34,13 @@ class OpenRouterConfig:
 
 
 @dataclass
+class OpenAIConfig:
+    api_key: str = ""
+    model: str = "gpt-4o-mini"
+
+
+
+@dataclass
 class TaskAIConfig:
     provider: str = ""
     model: str = ""
@@ -80,6 +87,7 @@ class Config:
     vault: VaultConfig = field(default_factory=VaultConfig)
     gemini: GeminiConfig = field(default_factory=GeminiConfig)
     openrouter: OpenRouterConfig = field(default_factory=OpenRouterConfig)
+    openai: OpenAIConfig = field(default_factory=OpenAIConfig)
     ai: AIConfig = field(default_factory=AIConfig)
     interlink: InterlinkConfig = field(default_factory=InterlinkConfig)
     server: ServerConfig = field(default_factory=ServerConfig)
@@ -102,6 +110,8 @@ class Config:
                 api_key = self.openrouter.api_key
             elif provider == "gemini":
                 api_key = self.gemini.api_key
+            elif provider == "openai":
+                api_key = self.openai.api_key
             else:
                 env_var = DEFAULT_PROVIDER_ENV_VARS.get(provider, "")
                 if env_var:
@@ -114,8 +124,11 @@ class Config:
                 model = self.openrouter.model
             elif provider == "gemini":
                 model = self.gemini.model
+            elif provider == "openai":
+                model = self.openai.model
             else:
                 model = DEFAULT_PROVIDER_MODELS.get(provider, "")
+
 
         # 4. Determine RPM limit
         rpm_limit = task_cfg.rpm_limit
@@ -204,15 +217,27 @@ def load_config(config_path: Path | str | None = None) -> Config:
         rpm_limit=openrouter_rpm,
     )
 
+    # OpenAI
+    oa_data = data.get("openai", {})
+    openai_key = os.getenv("OPENAI_API_KEY") or oa_data.get("api_key", "")
+    openai_model = os.getenv("OPENAI_MODEL") or oa_data.get("model", "gpt-4o-mini")
+    openai = OpenAIConfig(
+        api_key=openai_key,
+        model=openai_model,
+    )
+
     # Unified AI / Tasks
     ai_data = data.get("ai", {})
-    # Default provider: explicit config -> env -> openrouter if key present and no gemini key -> gemini
+    # Default provider: explicit config -> env -> openai -> openrouter -> gemini
     default_provider = os.getenv("C2B_AI_PROVIDER") or ai_data.get("default_provider", "")
     if not default_provider:
-        if openrouter_key and not gemini_key:
+        if openai_key and not gemini_key and not openrouter_key:
+            default_provider = "openai"
+        elif openrouter_key and not gemini_key:
             default_provider = "openrouter"
         else:
             default_provider = "gemini"
+
 
     synth_data = ai_data.get("synthesis", {})
     synthesis = TaskAIConfig(
@@ -286,7 +311,9 @@ def load_config(config_path: Path | str | None = None) -> Config:
         vault=vault,
         gemini=gemini,
         openrouter=openrouter,
+        openai=openai,
         ai=ai,
         interlink=interlink,
         server=server,
     )
+

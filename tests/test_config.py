@@ -145,3 +145,27 @@ def test_task_ai_fallback_to_gemini(tmp_path: Path):
     assert synth_client.model == "gemini-2.5-flash"
     assert synth_client.api_key == "gemini-fallback-key"
 
+
+def test_openai_direct_config(tmp_path: Path):
+    toml_content = """
+    [openai]
+    api_key = "sk-proj-test12345"
+    model = "gpt-4o"
+
+    [ai]
+    default_provider = "openai"
+    """
+    cfg_file = tmp_path / "c2b.toml"
+    cfg_file.write_text(toml_content, encoding="utf-8")
+
+    cfg = load_config(cfg_file)
+    assert cfg.openai.api_key == "sk-proj-test12345"
+    assert cfg.openai.model == "gpt-4o"
+
+    client = cfg.get_llm_client_for_task("synthesis")
+    assert client.provider == "openai"
+    assert client.model == "gpt-4o"
+    assert client.api_key == "sk-proj-test12345"
+    assert client.endpoint == "https://api.openai.com/v1/chat/completions"
+
+
