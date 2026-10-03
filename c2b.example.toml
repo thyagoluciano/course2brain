@@ -1,62 +1,127 @@
 # course2brain Configuration File Example
 # Copy this file to `c2b.toml` or `~/.config/c2b/config.toml`
 
+# ═════════════════════════════════════════════════════════════════════════════
+# 1. OBSIDIAN SECOND BRAIN VAULT
+# ═════════════════════════════════════════════════════════════════════════════
 [vault]
-# Absolute path to your Obsidian vault (use ~ for home directory)
+# Caminho absoluto para o cofre do Obsidian (use ~ para a pasta home do usuário)
 path = "~/Obsidian/SecondBrain"
+
+# Pasta onde os cursos e aulas sintetizadas serão organizados
 courses_folder = "10-Cursos"
+
+# Pasta de notas atômicas e conceitos
 concepts_folder = "20-Conceitos"
 
+
 # ═════════════════════════════════════════════════════════════════════════════
-# PROVEDORES DE IA (Escolha um ou configure ambos)
+# 2. PROVEDORES DE IA (Escolha um ou configure conforme sua preferência)
 # ═════════════════════════════════════════════════════════════════════════════
 
+# ─── Provedor Padrão Global ───
+[ai]
+# Escolha o provedor padrão do sistema:
+# Opções: "openrouter", "gemini", "openai", "grok", "deepseek", "ollama"
+default_provider = "openrouter"
+
+
+# ─── Opção A: OpenRouter (Recomendado - Modelos Gratuitos e Pagos) ───
+# Permite acessar mais de 300 modelos com uma única chave.
+# Veja o passo a passo completo em: docs/OPENROUTER_GUIDE.md
 [openrouter]
-# Chave da API OpenRouter (ou deixe vazio para ler da variável OPENROUTER_API_KEY)
-# Veja o guia em docs/OPENROUTER_GUIDE.md para criar conta e obter sua chave gratuita.
+# Chave da API OpenRouter (deixe vazio para ler da variável OPENROUTER_API_KEY)
 api_key = ""
-# Modelo padrão recomendado: 'google/gemma-4-31b-it:free' ou 'openrouter/free'
+
+# Modelos Gratuitos Recomendados (custo $0):
+# • "google/gemma-4-31b-it:free"       - 256k contexto (Padrão para síntese, excelente em PT-BR)
+# • "qwen/qwen3.8-27b:free"            - 262k contexto (Excelente para JSON e código)
+# • "nvidia/nemotron-3-ultra-550b-a55b:free" - 1 milhão de tokens (Ideal para aulas longas)
+# • "openrouter/free"                  - Roteador dinâmico de modelos gratuitos
+#
+# Modelos de Fronteira Pagos (exigem créditos):
+# • "anthropic/claude-3.7-sonnet"
+# • "openai/gpt-4o"
 model = "google/gemma-4-31b-it:free"
+
 # Limite de requisições por minuto para modelos gratuitos (padrão seguro: 15)
 rpm_limit = 15
 
+
+# ─── Opção B: Google Gemini (Nativo / Oficial) ───
 [gemini]
-# Chave da API Google Gemini (ou deixe vazio para ler da variável GEMINI_API_KEY)
+# Chave da API do Google AI Studio (ou variável GEMINI_API_KEY)
+# Obtenha gratuitamente em: https://aistudio.google.com/
 api_key = ""
 model = "gemini-3.8-flash"
 
-# ═════════════════════════════════════════════════════════════════════════════
-# CONFIGURAÇÃO DINÂMICA DE TAREFAS (Opcional)
-# ═════════════════════════════════════════════════════════════════════════════
-# Se omitido, o sistema usará o provedor configurado acima (ou gemini por padrão).
-[ai]
-# Provedor global padrão: "openrouter", "gemini", "openai", "grok", "ollama"
-default_provider = "openrouter"
 
+# ─── Opção C: OpenAI Direta (Opcional) ───
+# [openai]
+# api_key = "" # ou variável OPENAI_API_KEY
+# model = "gpt-4o-mini"
+
+
+# ─── Opção D: Grok / xAI Direto (Opcional) ───
+# [grok]
+# api_key = "" # ou variável XAI_API_KEY
+# model = "grok-2"
+
+
+# ─── Opção E: Ollama Local (100% Offline, Privado e Gratuito) ───
+# Para rodar modelos na sua máquina sem internet e sem custos de API:
+# [ollama]
+# base_url = "http://localhost:11434/v1"
+# model = "llama3.2:latest"
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 3. ALOCAÇÃO DINÂMICA POR TAREFA (Opcional)
+# ═════════════════════════════════════════════════════════════════════════════
+# Permite usar provedores e modelos diferentes para cada tipo de processamento.
+# Se omitido, o sistema utilizará o 'default_provider' configurado na seção [ai].
+
+# Tarefa 1: Síntese de Aulas (Geração do documento Second Brain / Zettelkasten)
 [ai.synthesis]
-# Provedor e modelo específicos para sintetizar notas de aula
 provider = "openrouter"
 model = "google/gemma-4-31b-it:free"
 
+# Tarefa 2: Auto-Interlink (Validação semântica e conexões conceituais no Grafo)
 [ai.interlink]
-# Provedor e modelo específicos para validação semântica de conexões
 provider = "openrouter"
 model = "qwen/qwen3.8-27b:free"
 
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 4. AUTO-INTERLINK & GRAFO SEMÂNTICO (sqlite-vec)
+# ═════════════════════════════════════════════════════════════════════════════
 [interlink]
-# Automatically discover and inject semantic links into Obsidian Graph View
+# Habilitar injeção automática de conexões semânticas bidirecionais
 enabled = true
+
+# Limiar mínimo de similaridade de cosseno para sugerir conexão (0.0 a 1.0)
 similarity_threshold = 0.78
+
+# Número máximo de conexões injetadas por nota
 max_links = 5
+
+# Modelo local de embedding vetorial (roda offline sem custos)
 embedding_model = "all-MiniLM-L6-v2"
-# Path to vectors database (defaults to <vault>/_sistema/vectors.db if empty)
+
+# Caminho do banco vetorial SQLite (padrão: <vault>/_sistema/vectors.db)
 db_path = ""
-# Folders relative to the vault to index and discover links for.
-# Use ["*"] to index the entire vault (excluding exclude_folders).
+
+# Pastas relativas ao cofre para indexar e descobrir conexões conceituais.
+# Use ["*"] para indexar todo o cofre (respeitando exclude_folders).
 include_folders = ["10-Cursos", "50-Conteudo", "20-Conceitos"]
-# Folders and system files strictly ignored by the indexer
+
+# Pastas e arquivos estritamente ignorados pelo indexador semântico
 exclude_folders = [".obsidian", "_sistema", ".trash", "90-Templates", ".git"]
 
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 5. SERVIDOR LOCAL (FastAPI / Chrome Extension Backend)
+# ═════════════════════════════════════════════════════════════════════════════
 [server]
 host = "127.0.0.1"
 port = 8765
