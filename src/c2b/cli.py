@@ -33,7 +33,9 @@ def version():
 
 
 @app.command("status")
+@app.command("info")
 def status(
+
     config_file: Optional[Path] = typer.Option(
         None, "--config", "-c", help="Caminho do arquivo c2b.toml"
     ),
